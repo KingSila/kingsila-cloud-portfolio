@@ -1,44 +1,43 @@
-# Azure · Terraform · DevOps — 12-Week Tracker
+# 12-Week Azure | Terraform | DevOps Tracker (Nov 2025 – Jan 2026)
 
-## Week 1–2: Azure Core + Governance
-- [ ] Read: Azure Networking deep dive
-- [ ] Lab: Hub-and-spoke (manual)
-- [ ] Export to ARM → Terraform
+## Week 1–2 : Azure Core + Governance
+- [ ] Review VNets, NSGs, route tables, subnets
+- [ ] Set up Management Groups & RBAC
+- [ ] Deploy hub-and-spoke network manually
+- [ ] Export ARM → Terraform
 - [ ] Notes committed (`/notes/week1-2.md`)
-- [ ] Demo screenshots pushed
 
-## Week 3–4: Terraform Advanced
-- [ ] Modules: vnet, nsg, vm, storage
-- [ ] Remote state (Azure Storage)
-- [ ] CI: plan → apply (Actions)
-- [ ] Static scan (checkov/tfsec)
-- [ ] Write-up (`/docs/terraform.md`)
+## Week 3–4 : Terraform Advanced
+- [ ] Create reusable modules: vnet, nsg, vm, storage
+- [ ] Configure remote state in Azure Storage
+- [ ] Implement workspaces & backends
+- [ ] Add GitHub Actions for plan/apply
+- [ ] Push module repos to GitHub
 
-## Week 5–6: CI/CD & Automation
-- [ ] GH Actions workflow for IaC
-- [ ] App pipeline (container → AKS/AppSvc)
-- [ ] Key Vault integration
-- [ ] Approvals/environments
-- [ ] Troubleshooting doc
+## Week 5–6 : CI/CD & Automation
+- [ ] Build pipeline for infra & app deployment
+- [ ] Integrate Key Vault secrets
+- [ ] Add approvals/environments
+- [ ] Write test automation (terratest/checkov)
+- [ ] Update `/docs/devops.md`
 
-## Week 7–8: Security & Monitoring
-- [ ] Defender for Cloud policies
-- [ ] Azure Monitor + Logs
-- [ ] Budgets + tagging
-- [ ] Policy as Code (Terraform)
-- [ ] Postmortem drill
+## Week 7–8 : Security & Monitoring
+- [ ] Enable Defender for Cloud
+- [ ] Configure Azure Monitor & Log Analytics
+- [ ] Deploy policy assignments via Terraform
+- [ ] Implement cost budgets + tagging
+- [ ] Write summary in `/notes/week7-8.md`
 
-## Week 9–10: Containers & Modern Infra
-- [ ] AKS + ACR + Ingress
-- [ ] Helm deploy via Actions
-- [ ] Terraform AKS module
-- [ ] GitOps flow
-- [ ] Load test notes
+## Week 9–10 : Containers & Modern Infra
+- [ ] Create AKS cluster & ACR
+- [ ] Deploy container app via Helm
+- [ ] Integrate with CI/CD
+- [ ] Document AKS module
+- [ ] Add architecture diagram
 
-## Week 11–12: Portfolio & Interviews
-- [ ] Final project README
-- [ ] Architecture diagram
-- [ ] Mock interviews
-- [ ] CV + LinkedIn update
-- [ ] Medium/LinkedIn post link
-
+## Week 11–12 : Portfolio & Interview Readiness
+- [ ] Finalize end-to-end project
+- [ ] Polish README & architecture docs
+- [ ] Conduct mock interviews
+- [ ] Update CV + LinkedIn
+- [ ] Publish Medium/LinkedIn article
