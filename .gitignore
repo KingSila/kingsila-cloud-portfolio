@@ -1,0 +1,93 @@
+# Terraform & Azure ignore rules
+
+# ---------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------
+# Local .terraform directories
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Terraform plan outputs
+*.plan
+
+# ---------------------------------------------------------------------
+# Azure / DevOps / Cloud CLI
+# ---------------------------------------------------------------------
+.azure/
+*.azcli
+*.bak
+
+# Credentials & keys
+*.pem
+*.key
+*.crt
+*.pfx
+*.cer
+secrets.*
+.env
+.env.*
+.envrc
+*.config
+config.json
+*.private.json
+
+# ---------------------------------------------------------------------
+# Python / Node / Misc. tooling
+# ---------------------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+node_modules/
+package-lock.json
+
+# ---------------------------------------------------------------------
+# VS Code / IDE / OS
+# ---------------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------
+# Logs / Outputs
+# ---------------------------------------------------------------------
+*.log
+logs/
+output/
+tmp/
+*.tmp
+*.bak
+*.old
+
+# ---------------------------------------------------------------------
+# CI/CD Artifacts
+# ---------------------------------------------------------------------
+dist/
+build/
+coverage/
+test-results/
+reports/
+
+# ---------------------------------------------------------------------
+# Custom project exclusions
+# ---------------------------------------------------------------------
+# Local notes not meant for GitHub
+notes/private/
+# Local testing environments
+infra/environments/test-local/
+# Cached credentials
+.github-token
