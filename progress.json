@@ -1,1 +1,149 @@
-{}
+{
+  "projectName": "KingSila Cloud Portfolio",
+  "startDate": "2025-11-07",
+  "endDate": "2026-01-30",
+  "totalWeeks": 12,
+  "overallProgress": 2,
+  "weeklyProgress": {
+    "week1-2": {
+      "title": "Azure Core + Governance",
+      "status": "in-progress",
+      "progressPercent": 10,
+      "tasksCompleted": [
+        "Created project structure",
+        "Fixed Terraform module duplication errors",
+        "Set up Service Principal for Terraform",
+        "Fixed NSG module",
+        "Tested VNet deployment"
+      ],
+      "tasksRemaining": [
+        "Review VNets, NSGs, route tables, subnets",
+        "Set up Management Groups & RBAC",
+        "Deploy hub-and-spoke network manually",
+        "Export ARM to Terraform"
+      ],
+      "hoursSpent": 7
+    },
+    "week3-4": {
+      "title": "Terraform Advanced",
+      "status": "not-started",
+      "progressPercent": 0,
+      "tasksCompleted": [],
+      "tasksRemaining": [
+        "Create reusable modules: vnet, nsg, vm, storage",
+        "Configure remote state in Azure Storage",
+        "Implement workspaces & backends",
+        "Add GitHub Actions for plan/apply",
+        "Push module repos to GitHub"
+      ],
+      "hoursSpent": 0
+    },
+    "week5-6": {
+      "title": "CI/CD & Automation",
+      "status": "not-started",
+      "progressPercent": 0,
+      "tasksCompleted": [],
+      "tasksRemaining": [
+        "Build pipeline for infra & app deployment",
+        "Integrate Key Vault secrets",
+        "Add approvals/environments",
+        "Write test automation (terratest/checkov)"
+      ],
+      "hoursSpent": 0
+    },
+    "week7-8": {
+      "title": "Security & Monitoring",
+      "status": "not-started",
+      "progressPercent": 0,
+      "tasksCompleted": [],
+      "tasksRemaining": [
+        "Enable Defender for Cloud",
+        "Configure Azure Monitor & Log Analytics",
+        "Deploy policy assignments via Terraform",
+        "Implement cost budgets + tagging"
+      ],
+      "hoursSpent": 0
+    },
+    "week9-10": {
+      "title": "Containers & Modern Infra",
+      "status": "not-started",
+      "progressPercent": 0,
+      "tasksCompleted": [],
+      "tasksRemaining": [
+        "Create AKS cluster & ACR",
+        "Deploy container app via Helm",
+        "Integrate with CI/CD",
+        "Document AKS module",
+        "Add architecture diagram"
+      ],
+      "hoursSpent": 0
+    },
+    "week11-12": {
+      "title": "Portfolio & Interview Readiness",
+      "status": "not-started",
+      "progressPercent": 0,
+      "tasksCompleted": [],
+      "tasksRemaining": [
+        "Finalize end-to-end project",
+        "Polish README & architecture docs",
+        "Conduct mock interviews",
+        "Update CV + LinkedIn",
+        "Publish Medium/LinkedIn article"
+      ],
+      "hoursSpent": 0
+    }
+  },
+  "dailyLogs": {
+    "date": "2025-11-07",
+    "week": "week1-2",
+    "hoursSpent": 4,
+    "tasksCompleted": [
+      "Fixed Terraform module duplication errors",
+      "Created Service Principal (terraform-sp)",
+      "Set up project structure",
+      "Investigated Terraform backend setup"
+    ],
+    "challenges": [
+      "Git Bash path conversion breaking Azure CLI commands",
+      "Duplicate output definitions in Terraform"
+    ],
+    "learnings": [
+      "Terraform backends don't create their own infrastructure",
+      "MSYS2_ARG_CONV_EXCL workaround for Git Bash",
+      "PowerShell provides smoother Azure CLI experience"
+    ],
+    "notes": "First day focused on environment setup and fixing initial Terraform issues. Need to decide on backend strategy."
+  },
+  "skills": {
+    "azure": {
+      "vnet": "intermediate",
+      "aks": "beginner",
+      "monitoring": "beginner",
+      "security": "beginner"
+    },
+    "terraform": {
+      "modules": "intermediate",
+      "state-management": "beginner",
+      "best-practices": "intermediate"
+    },
+    "devops": {
+      "github-actions": "beginner",
+      "azure-devops": "beginner",
+      "ci-cd": "intermediate"
+    }
+  },
+  "certifications": {
+    "target": [
+      "AZ-104",
+      "AZ-305",
+      "Terraform Associate"
+    ],
+    "completed": []
+  },
+  "badges": {
+    "weeklyStreak": 1,
+    "modulesCreated": 1,
+    "pipelinesBuilt": 0,
+    "issuesResolved": 2
+  }
+}
