@@ -13,12 +13,18 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.52.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
 provider "azurerm" {
   features {}
 }
+
+provider "random" {}
 
 module "vnet" {
   source              = "../../modules/vnet"
@@ -63,3 +69,97 @@ module "route_table" {
   tags = var.tags
 }
 
+# ---------------------------------------------------------------------
+# App Service Infrastructure
+# ---------------------------------------------------------------------
+
+locals {
+  name = lower("${var.prefix}-app")
+}
+
+# Lookup existing RG and VNet
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
+}
+
+data "azurerm_virtual_network" "vnet" {
+  name                = var.vnet_name
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+# Ensure an app service subnet exists + delegated
+resource "azurerm_subnet" "appsvc" {
+  name                 = var.appsvc_subnet_name
+  resource_group_name  = data.azurerm_resource_group.rg.name
+  virtual_network_name = data.azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.10.20.0/27"] # adjust to your plan
+
+  delegation {
+    name = "appservice"
+    service_delegation {
+      name = "Microsoft.Web/serverFarms"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/action"
+      ]
+    }
+  }
+}
+
+# (Optional) Associate existing NSG if you already created one for appsvc subnet
+# data "azurerm_network_security_group" "appsvc_nsg" {
+#   name                = "nsg-appsvc"
+#   resource_group_name = data.azurerm_resource_group.rg.name
+# }
+# resource "azurerm_subnet_network_security_group_association" "appsvc_assoc" {
+#   subnet_id                 = azurerm_subnet.appsvc.id
+#   network_security_group_id = data.azurerm_network_security_group.appsvc_nsg.id
+# }
+
+# Log Analytics
+resource "random_integer" "rand" {
+  min = 10000
+  max = 99999
+}
+
+resource "azurerm_log_analytics_workspace" "law" {
+  name              = "${local.name}-law-${random_integer.rand.result}"
+  location          = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  sku               = "PerGB2018"
+  retention_in_days = var.log_retention_days
+}
+
+# Application Insights (workspace-based)
+resource "azurerm_application_insights" "appi" {
+  name                = "${local.name}-appi-${random_integer.rand.result}"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.law.id
+}
+
+# App Service Plan (Linux)
+resource "azurerm_service_plan" "plan" {
+  name                = "${local.name}-asp"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  os_type             = "Linux"
+  sku_name            = var.appservice_sku # B1 by default
+}
+
+# Web App
+resource "azurerm_linux_web_app" "web" {
+  name                = "${local.name}-web"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  service_plan_id     = azurerm_service_plan.plan.id
+
+  site_config {
+    application_stack {
+      dotnet_version = "8.0"
+    }
+  }
+
+  # VNet Integration
+  virtual_network_subnet_id = azurerm_subnet.appsvc.id
+}
