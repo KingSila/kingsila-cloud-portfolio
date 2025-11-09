@@ -1,43 +1,56 @@
 # 12-Week Azure | Terraform | DevOps Tracker (Nov 2025 – Jan 2026)
 
-## Week 1–2 : Azure Core + Governance
-- [ ] Review VNets, NSGs, route tables, subnets
-- [ ] Set up Management Groups & RBAC
-- [ ] Deploy hub-and-spoke network manually
-- [ ] Export ARM → Terraform
-- [ ] Notes committed (`/notes/week1-2.md`)
+## ✅ Week 1–2 : Azure Core + Terraform Foundations (COMPLETED)
+- [x] Review VNets, NSGs, route tables, subnets
+- [x] Create reusable Terraform modules (vnet, nsg, route_table)
+- [x] Configure remote state in Azure Storage (backend bootstrap)
+- [x] Implement provider inheritance best practices
+- [x] Deploy dev environment with VNet integration
+- [x] Add App Service with monitoring (Log Analytics, App Insights)
+- [x] Notes committed (`/notes/day1_log.md`, `/notes/day2_log.md`, `/notes/day3_log.md`)
 
-## Week 3–4 : Terraform Advanced
-- [ ] Create reusable modules: vnet, nsg, vm, storage
-- [ ] Configure remote state in Azure Storage
-- [ ] Implement workspaces & backends
-- [ ] Add GitHub Actions for plan/apply
-- [ ] Push module repos to GitHub
+## Week 3–4 : RBAC, Environments & CI/CD
+- [ ] Set up Management Groups & RBAC policies
+- [ ] Create test and prod environments (replicate dev pattern)
+- [ ] Implement Terraform workspaces or directory-based environments
+- [ ] Add GitHub Actions workflow for terraform plan/apply
+- [ ] Implement approval gates for prod deployments
+- [ ] Add pre-commit hooks and validation
 
-## Week 5–6 : CI/CD & Automation
-- [ ] Build pipeline for infra & app deployment
-- [ ] Integrate Key Vault secrets
-- [ ] Add approvals/environments
-- [ ] Write test automation (terratest/checkov)
-- [ ] Update `/docs/devops.md`
+## Week 5–6 : Security, Monitoring & Secrets Management
 
-## Week 7–8 : Security & Monitoring
-- [ ] Enable Defender for Cloud
-- [ ] Configure Azure Monitor & Log Analytics
-- [ ] Deploy policy assignments via Terraform
-- [ ] Implement cost budgets + tagging
-- [ ] Write summary in `/notes/week7-8.md`
+- [ ] Enable Defender for Cloud baseline
+- [ ] Integrate Azure Key Vault for secrets
+- [ ] Deploy policy assignments via Terraform (naming, tagging, regions)
+- [ ] Implement cost budgets and resource tagging strategy
+- [ ] Add Terraform validation and security scanning (checkov/tfsec)
+- [ ] Document security architecture in `/docs/security.md`
 
-## Week 9–10 : Containers & Modern Infra
-- [ ] Create AKS cluster & ACR
-- [ ] Deploy container app via Helm
-- [ ] Integrate with CI/CD
-- [ ] Document AKS module
-- [ ] Add architecture diagram
+## Week 7–8 : Advanced CI/CD & Testing
 
-## Week 11–12 : Portfolio & Interview Readiness
-- [ ] Finalize end-to-end project
-- [ ] Polish README & architecture docs
-- [ ] Conduct mock interviews
-- [ ] Update CV + LinkedIn
-- [ ] Publish Medium/LinkedIn article
+- [ ] Build full GitHub Actions pipeline (plan, apply, destroy)
+- [ ] Add approval gates and environment protection rules
+- [ ] Implement Terraform testing (terratest or similar)
+- [ ] Add drift detection automation
+- [ ] Create rollback procedures
+- [ ] Update `/docs/devops.md` with pipeline documentation
+
+## Week 9–10 : Containers & Kubernetes
+
+- [ ] Create AKS cluster module with best practices
+- [ ] Set up Azure Container Registry (ACR)
+- [ ] Deploy sample containerized app via Helm
+- [ ] Integrate AKS with existing VNet (spoke pattern)
+- [ ] Add AKS monitoring and logging
+- [ ] Document AKS architecture with diagrams
+
+## Week 11–12 : Portfolio Polish & Career Prep
+
+- [ ] Create hub-and-spoke architecture diagram
+- [ ] Finalize end-to-end project documentation
+- [ ] Polish main README with architecture overview
+- [ ] Add CI/CD pipeline diagrams
+- [ ] Update CV with specific Azure/Terraform achievements
+- [ ] Publish technical blog post (Medium/LinkedIn/Dev.to)
+- [ ] Prepare interview talking points from project experience
+- [ ] Record demo video (optional)
