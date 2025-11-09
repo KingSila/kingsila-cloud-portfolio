@@ -16,6 +16,13 @@ Azure App Service · Terraform VNet Integration · Module Best Practices
 - Updated `.gitignore` to exclude `.terraform/` directories, `.tfvars` files, and `.env` files.
 - Resolved GitHub push protection by removing exposed Azure credentials from `.env` file.
 - Created comprehensive README.md for dev environment with deployment instructions.
+- **Created test environment** by replicating dev structure.
+- Updated test environment with unique names and address spaces (10.20.0.0/16).
+- Modified backend state key to `test.terraform.tfstate` for isolation.
+- Successfully initialized and validated test environment with `terraform plan`.
+- Removed `notes/` from `.gitignore` to track daily logs in version control.
+- Updated TRACKER.md to reflect actual progress (Week 1-2 completed).
+- Updated progress.json with completed tasks and skill improvements.
 
 ## 🕵️‍♂️ To Investigate Further
 - Learned about Terraform variable defaults: optional vs required variables.
@@ -33,12 +40,12 @@ Azure App Service · Terraform VNet Integration · Module Best Practices
 | Duplicate `.gitignore` patterns | Multiple Terraform sections, redundant patterns | Consolidated and removed duplicates (*.auto.tfvars covered by *.tfvars) |
 
 ## 🚀 Next Steps
-- Verify VNet integration in Azure Portal (Web App → Networking).
-- Test App Service deployment with sample application.
-- Set up CI/CD pipeline for automated deployments.
-- Implement test and prod environments with same pattern.
-- Add NSG rules for App Service subnet if needed.
-- Consider adding Azure Bastion or NAT Gateway based on requirements.
+- Deploy test environment infrastructure (terraform apply).
+- Set up CI/CD pipeline with GitHub Actions for automated deployments.
+- Implement RBAC and Management Groups configuration.
+- Add pre-commit hooks and validation tools.
+- Create prod environment following same pattern.
+- Integrate Azure Key Vault for secrets management.
 
 ## 🧠 Learnings
 - **Git and Large Files**: Never commit `.terraform/` directories - they contain large provider binaries that exceed GitHub limits.
@@ -49,5 +56,8 @@ Azure App Service · Terraform VNet Integration · Module Best Practices
 - **Lock File Strategy**: Keep `.terraform.lock.hcl` in environments for reproducibility, exclude from modules for flexibility.
 - **Monitoring Stack**: Log Analytics Workspace + Application Insights provides complete observability for App Services.
 - **Resource Naming**: Use locals and random integers for unique resource names to avoid conflicts.
+- **Multi-Environment Strategy**: Use separate address spaces per environment (dev: 10.10.x.x, test: 10.20.x.x, prod: 10.30.x.x).
+- **Environment Isolation**: Each environment has its own backend state file (dev.tfstate, test.tfstate) for safety.
+- **Progress Tracking**: JSON format enables PowerShell automation for daily progress updates and reporting.
 
 ---
