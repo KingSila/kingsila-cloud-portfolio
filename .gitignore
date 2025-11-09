@@ -58,7 +58,6 @@ labs/
 playground/
 
 # Optional: Ignore personal notes or testing configs
-notes/
 *_notes.md
 
 # Terraform plans
