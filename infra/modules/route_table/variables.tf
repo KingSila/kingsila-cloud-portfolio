@@ -14,8 +14,9 @@ variable "resource_group_name" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs to associate the route table with"
-  type        = list(string)
+  description = "Map of subnet names to subnet IDs to associate the route table with"
+  type        = map(string)
+  default     = {}
 }
 
 variable "tags" {

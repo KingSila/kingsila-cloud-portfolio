@@ -6,6 +6,40 @@
       "type": "shell",
       "command": "code TRACKER.md",
       "problemMatcher": []
+    },
+    {
+      "label": "🚨 END OF DAY: Terraform Destroy (DEV)",
+      "type": "shell",
+      "command": "terraform destroy -var-file='terraform.tfvars'",
+      "options": {
+        "cwd": "${workspaceFolder}/infra/environments/dev"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "🚨 END OF DAY: Terraform Destroy (TEST)",
+      "type": "shell",
+      "command": "terraform destroy -var-file='terraform.tfvars'",
+      "options": {
+        "cwd": "${workspaceFolder}/infra/environments/test"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
     }
   ]
 }

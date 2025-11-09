@@ -20,9 +20,9 @@ variable "subnet_id" {
 }
 
 variable "subnet_ids" {
-  description = "Optional list of subnets to associate the NSG with"
-  type        = list(string)
-  default     = []
+  description = "Optional map of subnet names to subnet IDs to associate the NSG with"
+  type        = map(string)
+  default     = {}
 }
 
 

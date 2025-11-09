@@ -50,11 +50,13 @@ module "nsg_app" {
   resource_group_name = var.resource_group_name
   allowed_ssh_source  = var.allowed_ssh_source
   allowed_rdp_source  = var.allowed_rdp_source
-  subnet_ids = [
-    module.vnet.subnet_ids["app"],
-    module.vnet.subnet_ids["data"]
-  ]
+  subnet_ids = {
+    app  = module.vnet.subnet_ids["app"]
+    data = module.vnet.subnet_ids["data"]
+  }
   tags = var.tags
+  
+  depends_on = [module.vnet]
 }
 
 module "route_table" {
@@ -62,11 +64,13 @@ module "route_table" {
   route_table_name    = "test-route-table"
   location            = var.location
   resource_group_name = var.resource_group_name
-  subnet_ids = [
-    module.vnet.subnet_ids["app"],
-    module.vnet.subnet_ids["data"]
-  ]
+  subnet_ids = {
+    app  = module.vnet.subnet_ids["app"]
+    data = module.vnet.subnet_ids["data"]
+  }
   tags = var.tags
+  
+  depends_on = [module.vnet]
 }
 
 # ---------------------------------------------------------------------

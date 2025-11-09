@@ -36,7 +36,7 @@ resource "azurerm_network_security_rule" "allow_rdp" {
 
 # Optional subnet association (only if provided)
 resource "azurerm_subnet_network_security_group_association" "assoc" {
-  for_each                  = toset(var.subnet_ids)
+  for_each                  = var.subnet_ids
   subnet_id                 = each.value
   network_security_group_id = azurerm_network_security_group.this.id
 }

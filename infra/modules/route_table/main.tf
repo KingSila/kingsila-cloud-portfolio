@@ -18,7 +18,7 @@ resource "azurerm_route" "internet_route" {
 
 # Associate route table with subnets
 resource "azurerm_subnet_route_table_association" "assoc" {
-  for_each              = toset(var.subnet_ids)
-  subnet_id             = each.value
-  route_table_id        = azurerm_route_table.this.id
+  for_each           = var.subnet_ids
+  subnet_id          = each.value
+  route_table_id     = azurerm_route_table.this.id
 }
