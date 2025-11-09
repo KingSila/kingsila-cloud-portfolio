@@ -25,8 +25,34 @@ variable "subnets" {
   }))
 }
 
+# Budget toggles
+variable "enable_nat" {
+  type    = bool
+  default = false
+}
+
+variable "enable_bastion" {
+  type    = bool
+  default = false
+}
+
+variable "enable_diagnostics" {
+  type    = bool
+  default = true
+}
+
+variable "log_retention_days" {
+  type    = number
+  default = 7
+}
+
+variable "private_endpoints" {
+  type    = list(string)
+  default = ["none"] # e.g. ["storage","keyvault"]
+}
+
 variable "tags" {
   description = "Common resource tags"
   type        = map(string)
-  default     = {}
+  default     = { env = "dev", owner = "kingsila", cost = "lean" }
 }
