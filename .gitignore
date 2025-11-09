@@ -43,10 +43,6 @@ terraform.tfstate.backup
 terraform.log
 terraform.tfvars.d/
 
-# Local override configs
-*.auto.tfvars
-*.auto.tfvars.json
-
 # Security and documentation files (local only)
 SECURITY_PRACTICES.md
 README_local.md
@@ -54,8 +50,6 @@ README_local.md
 # Local secrets, credentials, or IP configs
 secrets/
 local.secrets.*
-private.tfvars
-private.auto.tfvars
 *.sensitive.json
 
 # Temporary Terraform experiment folders
@@ -66,3 +60,6 @@ playground/
 # Optional: Ignore personal notes or testing configs
 notes/
 *_notes.md
+
+# Terraform plans
+*.plan
