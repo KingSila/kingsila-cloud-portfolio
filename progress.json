@@ -3,92 +3,104 @@
   "startDate": "2025-11-07",
   "endDate": "2026-01-30",
   "totalWeeks": 12,
-  "overallProgress": 2,
+  "overallProgress": 20,
   "weeklyProgress": {
     "week1-2": {
-      "title": "Azure Core + Governance",
-      "status": "in-progress",
-      "progressPercent": 10,
+      "title": "Azure Core + Terraform Foundations",
+      "status": "completed",
+      "progressPercent": 100,
       "tasksCompleted": [
         "Created project structure",
         "Fixed Terraform module duplication errors",
         "Set up Service Principal for Terraform",
-        "Fixed NSG module",
-        "Tested VNet deployment"
+        "Created reusable modules (vnet, nsg, route_table)",
+        "Configured remote state backend in Azure Storage",
+        "Bootstrapped backend infrastructure",
+        "Implemented provider inheritance best practices",
+        "Deployed dev environment with VNet",
+        "Added App Service with VNet integration",
+        "Implemented monitoring (Log Analytics + App Insights)",
+        "Fixed Git/GitHub issues (large files, credentials)",
+        "Created comprehensive dev environment README",
+        "Committed daily logs (day1, day2, day3)"
       ],
-      "tasksRemaining": [
-        "Review VNets, NSGs, route tables, subnets",
-        "Set up Management Groups & RBAC",
-        "Deploy hub-and-spoke network manually",
-        "Export ARM to Terraform"
-      ],
-      "hoursSpent": 7
+      "tasksRemaining": [],
+      "hoursSpent": 12
     },
     "week3-4": {
-      "title": "Terraform Advanced",
+      "title": "RBAC, Environments & CI/CD",
       "status": "not-started",
       "progressPercent": 0,
       "tasksCompleted": [],
       "tasksRemaining": [
-        "Create reusable modules: vnet, nsg, vm, storage",
-        "Configure remote state in Azure Storage",
-        "Implement workspaces & backends",
-        "Add GitHub Actions for plan/apply",
-        "Push module repos to GitHub"
+        "Set up Management Groups & RBAC policies",
+        "Create test and prod environments",
+        "Implement Terraform workspaces or directory-based environments",
+        "Add GitHub Actions workflow for terraform plan/apply",
+        "Implement approval gates for prod deployments",
+        "Add pre-commit hooks and validation"
       ],
       "hoursSpent": 0
     },
     "week5-6": {
-      "title": "CI/CD & Automation",
+      "title": "Security, Monitoring & Secrets Management",
       "status": "not-started",
       "progressPercent": 0,
       "tasksCompleted": [],
       "tasksRemaining": [
-        "Build pipeline for infra & app deployment",
-        "Integrate Key Vault secrets",
-        "Add approvals/environments",
-        "Write test automation (terratest/checkov)"
+        "Enable Defender for Cloud baseline",
+        "Integrate Azure Key Vault for secrets",
+        "Deploy policy assignments via Terraform",
+        "Implement cost budgets and resource tagging strategy",
+        "Add Terraform validation and security scanning (checkov/tfsec)",
+        "Document security architecture"
       ],
       "hoursSpent": 0
     },
     "week7-8": {
-      "title": "Security & Monitoring",
+      "title": "Advanced CI/CD & Testing",
       "status": "not-started",
       "progressPercent": 0,
       "tasksCompleted": [],
       "tasksRemaining": [
-        "Enable Defender for Cloud",
-        "Configure Azure Monitor & Log Analytics",
-        "Deploy policy assignments via Terraform",
-        "Implement cost budgets + tagging"
+        "Build full GitHub Actions pipeline (plan, apply, destroy)",
+        "Add approval gates and environment protection rules",
+        "Implement Terraform testing (terratest or similar)",
+        "Add drift detection automation",
+        "Create rollback procedures",
+        "Update /docs/devops.md with pipeline documentation"
       ],
       "hoursSpent": 0
     },
     "week9-10": {
-      "title": "Containers & Modern Infra",
+      "title": "Containers & Kubernetes",
       "status": "not-started",
       "progressPercent": 0,
       "tasksCompleted": [],
       "tasksRemaining": [
-        "Create AKS cluster & ACR",
-        "Deploy container app via Helm",
-        "Integrate with CI/CD",
-        "Document AKS module",
-        "Add architecture diagram"
+        "Create AKS cluster module with best practices",
+        "Set up Azure Container Registry (ACR)",
+        "Deploy sample containerized app via Helm",
+        "Integrate AKS with existing VNet (spoke pattern)",
+        "Add AKS monitoring and logging",
+        "Document AKS architecture with diagrams"
       ],
       "hoursSpent": 0
     },
     "week11-12": {
-      "title": "Portfolio & Interview Readiness",
+      "title": "Portfolio Polish & Career Prep",
       "status": "not-started",
       "progressPercent": 0,
       "tasksCompleted": [],
       "tasksRemaining": [
-        "Finalize end-to-end project",
-        "Polish README & architecture docs",
-        "Conduct mock interviews",
-        "Update CV + LinkedIn",
-        "Publish Medium/LinkedIn article"
+        "Create hub-and-spoke architecture diagram",
+        "Finalize end-to-end project documentation",
+        "Polish main README with architecture overview",
+        "Add CI/CD pipeline diagrams",
+        "Update CV with specific Azure/Terraform achievements",
+        "Publish technical blog post (Medium/LinkedIn/Dev.to)",
+        "Prepare interview talking points from project experience",
+        "Record demo video (optional)"
       ],
       "hoursSpent": 0
     }
@@ -117,19 +129,23 @@
   "skills": {
     "azure": {
       "vnet": "intermediate",
+      "app-service": "intermediate",
       "aks": "beginner",
-      "monitoring": "beginner",
-      "security": "beginner"
+      "monitoring": "intermediate",
+      "security": "beginner",
+      "log-analytics": "intermediate"
     },
     "terraform": {
       "modules": "intermediate",
-      "state-management": "beginner",
-      "best-practices": "intermediate"
+      "state-management": "intermediate",
+      "best-practices": "intermediate",
+      "backend-bootstrap": "intermediate"
     },
     "devops": {
       "github-actions": "beginner",
       "azure-devops": "beginner",
-      "ci-cd": "intermediate"
+      "ci-cd": "beginner",
+      "git": "intermediate"
     }
   },
   "certifications": {
@@ -142,8 +158,9 @@
   },
   "badges": {
     "weeklyStreak": 1,
-    "modulesCreated": 1,
+    "modulesCreated": 3,
     "pipelinesBuilt": 0,
-    "issuesResolved": 2
+    "issuesResolved": 8,
+    "weekCompleted": 1
   }
 }
