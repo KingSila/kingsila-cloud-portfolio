@@ -1,93 +1,65 @@
-# Terraform & Azure ignore rules
+# ---------------------------------------------------------------------
+# Environment Variables & Secrets
+# ---------------------------------------------------------------------
+.env
+.env.local
+*.env
 
 # ---------------------------------------------------------------------
-# Terraform
+# Terraform Files
 # ---------------------------------------------------------------------
+
 # Local .terraform directories
 **/.terraform/*
+
+# .tfstate files
 *.tfstate
 *.tfstate.*
+
+# Crash log files
 crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which are likely to contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they are usually used to override resources locally
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-.terraform.lock.hcl
 
-# Sensitive variable files
-*.tfvars
-*.tfvars.json
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
 
-# Terraform plan outputs
-*.plan
+# Additional Terraform workspace and debug files
+terraform.tfstate.backup
+*.backup
+terraform.log
+terraform.tfvars.d/
 
-# ---------------------------------------------------------------------
-# Azure / DevOps / Cloud CLI
-# ---------------------------------------------------------------------
-.azure/
-*.azcli
-*.bak
+# Local override configs
+*.auto.tfvars
+*.auto.tfvars.json
 
-# Credentials & keys
-*.pem
-*.key
-*.crt
-*.pfx
-*.cer
-secrets.*
-.env
-.env.*
-.envrc
-*.config
-config.json
-*.private.json
+# Security and documentation files (local only)
+SECURITY_PRACTICES.md
+README_local.md
 
-# ---------------------------------------------------------------------
-# Python / Node / Misc. tooling
-# ---------------------------------------------------------------------
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-node_modules/
-package-lock.json
+# Local secrets, credentials, or IP configs
+secrets/
+local.secrets.*
+private.tfvars
+private.auto.tfvars
+*.sensitive.json
 
-# ---------------------------------------------------------------------
-# VS Code / IDE / OS
-# ---------------------------------------------------------------------
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
+# Temporary Terraform experiment folders
+scratch/
+labs/
+playground/
 
-# ---------------------------------------------------------------------
-# Logs / Outputs
-# ---------------------------------------------------------------------
-*.log
-logs/
-output/
-tmp/
-*.tmp
-*.bak
-*.old
-
-# ---------------------------------------------------------------------
-# CI/CD Artifacts
-# ---------------------------------------------------------------------
-dist/
-build/
-coverage/
-test-results/
-reports/
-
-# ---------------------------------------------------------------------
-# Custom project exclusions
-# ---------------------------------------------------------------------
-# Local notes not meant for GitHub
-notes/private/
-# Local testing environments
-infra/environments/test-local/
-# Cached credentials
-.github-token
+# Optional: Ignore personal notes or testing configs
+notes/
+*_notes.md

@@ -71,6 +71,39 @@ Check [progress.json](./progress.json) for completion % and badges.
 - GitHub Docs: [Actions for Terraform](https://docs.github.com/en/actions)
 - John Savill’s YouTube: *Azure Masterclass*
 
+## 🔒 Security Practices
+
+This repository follows strict security and privacy guidelines to prevent accidental exposure of sensitive information:
+
+- **No credentials or secrets** are stored in the repository.  
+  All secrets (keys, tokens, passwords, IP addresses) are passed securely through environment variables or `.tfvars` files that are excluded from version control.
+
+- **Terraform state files are ignored** (`*.tfstate`, `*.tfstate.*`).  
+  State files often contain resource IDs and connection strings — keeping them local prevents leaking internal infrastructure details.
+
+- **Local variable and configuration files** such as `terraform.tfvars`, `.env`, or CLI credentials under `.azure/` are never committed.
+
+- **Example placeholders only** are used for sensitive inputs (e.g., `"YOUR_PUBLIC_IP/32"` instead of real IPs).  
+  Always replace these locally before running deployments.
+
+- **GitHub secrets** or secure pipelines (like Azure DevOps variable groups) are used for automated workflows.
+
+- **Security scanning** is encouraged.  
+  Use tools like [tfsec](https://aquasecurity.github.io/tfsec/), [Trivy](https://github.com/aquasecurity/trivy), or GitHub’s built-in secret scanning to continuously check the repo.
+
+---
+
+### 🧠 Tip: Keep Your Local Environment Safe
+- Store your IPs, credentials, and other private variables in `terraform.tfvars` or environment variables.  
+- Never push `.tfvars` or `.env` files — they’re ignored by `.gitignore`.  
+- Use `terraform apply -var` flags or environment variables (`TF_VAR_*`) to pass values securely at runtime.
+
+---
+
+Maintaining a clean boundary between public code and private configuration keeps this repository reusable, secure, and audit-friendly.
+
+
+
 ---
 
 ## 🤝 Connect
