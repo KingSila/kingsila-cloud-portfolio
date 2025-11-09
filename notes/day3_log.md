@@ -40,12 +40,13 @@ Azure App Service · Terraform VNet Integration · Module Best Practices
 | Duplicate `.gitignore` patterns | Multiple Terraform sections, redundant patterns | Consolidated and removed duplicates (*.auto.tfvars covered by *.tfvars) |
 
 ## 🚀 Next Steps
-- Deploy test environment infrastructure (terraform apply).
-- Set up CI/CD pipeline with GitHub Actions for automated deployments.
+- Test GitHub Actions workflow with a sample PR.
+- Add GitHub secrets for Azure service principal authentication.
+- Deploy test environment using terraform apply.
+- Add environment protection rules for test/prod in GitHub.
 - Implement RBAC and Management Groups configuration.
-- Add pre-commit hooks and validation tools.
-- Create prod environment following same pattern.
 - Integrate Azure Key Vault for secrets management.
+- Add drift detection and automated testing (checkov/terratest).
 
 ## 🧠 Learnings
 - **Git and Large Files**: Never commit `.terraform/` directories - they contain large provider binaries that exceed GitHub limits.
@@ -59,5 +60,8 @@ Azure App Service · Terraform VNet Integration · Module Best Practices
 - **Multi-Environment Strategy**: Use separate address spaces per environment (dev: 10.10.x.x, test: 10.20.x.x, prod: 10.30.x.x).
 - **Environment Isolation**: Each environment has its own backend state file (dev.tfstate, test.tfstate) for safety.
 - **Progress Tracking**: JSON format enables PowerShell automation for daily progress updates and reporting.
+- **GitHub Actions**: Matrix strategy allows parallel plan execution across multiple environments.
+- **CI/CD Security**: Store Azure credentials in GitHub secrets, never in workflow files.
+- **Workflow Artifacts**: Upload plan outputs for review and apply outputs for audit trails.
 
 ---
