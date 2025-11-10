@@ -9,12 +9,18 @@
 - [x] Add App Service with monitoring (Log Analytics, App Insights)
 - [x] Notes committed (`/notes/day1_log.md`, `/notes/day2_log.md`, `/notes/day3_log.md`)
 
-## Week 3–4 : RBAC, Environments & CI/CD
+## Week 3–4 : RBAC, Environments & CI/CD (IN PROGRESS)
+- [x] Add GitHub Actions workflow for terraform plan/apply
+- [x] Implement approval gates for test deployments
+- [x] Create branch protection rules for main branch
+- [x] Set up GitHub environments (dev, test, destroy)
+- [x] Add terraform destroy workflow with confirmations
+- [x] Implement drift detection with daily monitoring
+- [x] Document CI/CD pipeline in `/docs/cicd.md`
+- [x] Create GitHub setup guide in `/docs/github-setup.md`
+- [ ] Test CI/CD pipeline with sample PR
 - [ ] Set up Management Groups & RBAC policies
-- [ ] Create test and prod environments (replicate dev pattern)
-- [ ] Implement Terraform workspaces or directory-based environments
-- [ ] Add GitHub Actions workflow for terraform plan/apply
-- [ ] Implement approval gates for prod deployments
+- [ ] Create prod environment (replicate dev/test pattern)
 - [ ] Add pre-commit hooks and validation
 
 ## Week 5–6 : Security, Monitoring & Secrets Management

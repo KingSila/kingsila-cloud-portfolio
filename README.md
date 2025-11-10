@@ -30,11 +30,20 @@ See [`TRACKER.md`](./TRACKER.md) for week-by-week milestones.
 ---
 
 ## 🧱 Project Structure
-infra/ → Terraform modules & environments
-pipelines/ → GitHub Actions / Azure DevOps pipelines
-docs/ → Architecture & learning notes
-notes/ → Weekly notes & reflections
-images/ → Architecture diagrams & screenshots
+```
+infra/              → Terraform modules & environments
+  ├── modules/      → Reusable infrastructure modules
+  ├── environments/ → Dev, test, prod configurations
+  └── backend/      → Remote state configuration
+.github/
+  └── workflows/    → CI/CD pipelines
+docs/               → Architecture & technical documentation
+  ├── cicd.md       → CI/CD pipeline documentation
+  ├── github-setup.md → Branch protection setup guide
+  └── ...
+notes/              → Daily learning logs
+pipelines/          → Additional pipeline configurations
+```
 
 
 ---
@@ -61,7 +70,47 @@ images/ → Architecture diagrams & screenshots
 ---
 
 ## 🏁 Current Status
-Check [progress.json](./progress.json) for completion % and badges.  
+
+**Week 3-4: CI/CD & Environments** ✅ In Progress
+
+- ✅ Reusable Terraform modules (VNet, NSG, Route Tables)
+- ✅ Remote state with Azure Storage backend
+- ✅ Dev environment with App Service & monitoring
+- ✅ GitHub Actions CI/CD pipeline
+- ✅ Branch protection & environment approvals
+- ⏳ Testing & validation
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Azure CLI installed and authenticated
+- Terraform >= 1.13.0
+- GitHub account with repository secrets configured
+
+### Setup CI/CD
+```bash
+# Run the interactive setup script
+./setup-github-protection.ps1
+```
+
+Or manually configure:
+1. Branch protection rules (see [`docs/github-setup.md`](./docs/github-setup.md))
+2. GitHub environments (dev, test, dev-destroy, test-destroy)
+3. Repository secrets (ARM_CLIENT_ID, ARM_CLIENT_SECRET, etc.)
+
+### Deploy Infrastructure
+```bash
+# Feature branch workflow
+git checkout -b feature/my-changes
+# Make your changes
+git commit -am "feat: add new resource"
+git push origin feature/my-changes
+# Create PR → CI runs → Merge → Auto-deploy
+```
+
+See [`docs/cicd.md`](./docs/cicd.md) for detailed pipeline documentation.
 
 ---
 
@@ -109,3 +158,6 @@ Maintaining a clean boundary between public code and private configuration keeps
 ## 🤝 Connect
 **LinkedIn:** [linkedin.com/in/silasmokone](https://www.linkedin.com/in/silasmokone/)  
 **GitHub:** [github.com/KingSila](https://github.com/KingSila)  
+
+## Branch Protection Test
+

@@ -1,0 +1,115 @@
+name: Terraform Drift Detection
+
+on:
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+env:
+  TERRAFORM_VERSION: '1.13.0'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  detect-drift:
+    name: Detect Drift - ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, test]
+      fail-fast: false
+    
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Init
+        working-directory: infra/environments/${{ matrix.environment }}
+        run: terraform init
+
+      - name: Terraform Plan (Drift Check)
+        id: plan
+        working-directory: infra/environments/${{ matrix.environment }}
+        run: |
+          terraform plan -var-file="terraform.tfvars" -detailed-exitcode -no-color > drift-check.txt || exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          
+          # Exit code 0 = no changes, 1 = error, 2 = changes detected
+          if [ "${exit_code}" == "2" ]; then
+            echo "drift_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "drift_detected=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Create Drift Issue
+        if: steps.plan.outputs.drift_detected == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const driftOutput = fs.readFileSync('infra/environments/${{ matrix.environment }}/drift-check.txt', 'utf8');
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ Infrastructure Drift Detected - ${{ matrix.environment }}`,
+              labels: ['drift', 'infrastructure', '${{ matrix.environment }}'],
+              body: `## Infrastructure Drift Detected
+              
+              **Environment:** \`${{ matrix.environment }}\`
+              **Detected:** ${new Date().toISOString()}
+              **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+              
+              ### Drift Details
+              
+              <details>
+              <summary>Show Changes</summary>
+              
+              \`\`\`terraform
+              ${driftOutput.slice(0, 60000)}
+              \`\`\`
+              
+              </details>
+              
+              ### Next Steps
+              
+              1. Review the detected changes
+              2. Investigate why manual changes were made
+              3. Either:
+                 - Update Terraform code to match current state
+                 - Run \`terraform apply\` to revert manual changes
+              
+              **Note:** Manual changes to infrastructure can cause configuration drift and should be avoided.
+              `
+            });
+            
+            console.log(`Created issue #${issue.data.number}`);
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.plan.outputs.drift_detected }}" == "true" ]; then
+            echo "### ⚠️ Drift Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** \`${{ matrix.environment }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Configuration drift has been detected. An issue has been created." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ No Drift Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** \`${{ matrix.environment }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Infrastructure matches Terraform configuration." >> $GITHUB_STEP_SUMMARY
+          fi
