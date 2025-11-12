@@ -201,6 +201,6 @@ Maintaining a clean boundary between public code and private configuration keeps
 **GitHub:** [github.com/KingSila](https://github.com/KingSila)  
 
 ## Branch Protection Test
-- now i am tired 
-- --- IT CANT BE 
+This repository uses branch protection rules to enforce code quality and security best practices.  
+See [`docs/github-setup.md`](./docs/github-setup.md) for setup instructions.
 
