@@ -109,12 +109,51 @@ git commit -am "feat: add new resource"
 git push origin feature/my-changes
 # Create PR → CI runs → Merge → Auto-deploy
 ```
+### Daily Environment Workflow
+
+Start of day (stand up dev):
+
+```powershell
+pwsh ./start-environment.ps1 -Environment dev -PlanFirst -SummaryFile TRACKER.md
+```
+
+Fast path (no plan, just apply):
+
+```powershell
+pwsh ./start-environment.ps1 -Environment dev
+```
+
+VS Code Task alternative:
+
+1. Open command palette → Run Task → `🌅 START OF DAY: Terraform Apply (DEV)`
+2. End of day teardown → `🚨 END OF DAY: Terraform Destroy (DEV)`
+
+Test environment (optional):
+
+```powershell
+pwsh ./start-environment.ps1 -Environment test -PlanFirst
+```
+
+Script flags:
+
+- `-PlanFirst` creates a saved plan before apply.
+- `-SkipInit` skips `terraform init` if already initialized.
+- `-SummaryFile TRACKER.md` appends outputs summary to tracker.
+
+Destroy end of day (manual alternative to task):
+
+```powershell
+terraform destroy -auto-approve -var-file='terraform.tfvars' -chdir=infra/environments/dev
+```
+
+Tip: Re-run with `-PlanFirst` weekly to catch drift early.
 
 See [`docs/cicd.md`](./docs/cicd.md) for detailed pipeline documentation.
 
 ---
 
 ## 🧠 Learning Resources
+
 - Microsoft Learn: [Azure Architect](https://learn.microsoft.com/en-us/training/paths/azure-architecture-design/)
 - HashiCorp Learn: [Terraform on Azure](https://developer.hashicorp.com/terraform/tutorials/azure)
 - GitHub Docs: [Actions for Terraform](https://docs.github.com/en/actions)
@@ -143,6 +182,7 @@ This repository follows strict security and privacy guidelines to prevent accide
 ---
 
 ### 🧠 Tip: Keep Your Local Environment Safe
+
 - Store your IPs, credentials, and other private variables in `terraform.tfvars` or environment variables.  
 - Never push `.tfvars` or `.env` files — they’re ignored by `.gitignore`.  
 - Use `terraform apply -var` flags or environment variables (`TF_VAR_*`) to pass values securely at runtime.
@@ -156,6 +196,7 @@ Maintaining a clean boundary between public code and private configuration keeps
 ---
 
 ## 🤝 Connect
+
 **LinkedIn:** [linkedin.com/in/silasmokone](https://www.linkedin.com/in/silasmokone/)  
 **GitHub:** [github.com/KingSila](https://github.com/KingSila)  
 
