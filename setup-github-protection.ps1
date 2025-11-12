@@ -1,5 +1,13 @@
 #!/usr/bin/env pwsh
 
+param(
+    [switch]$AutoProtect,
+    [string]$Branch = 'main',
+    [string]$Repo = 'KingSila/kingsila-cloud-portfolio',
+    [int]$Approvals = 1,
+    [string[]]$StatusChecks = @() # e.g. 'Terraform Plan - dev','Terraform Plan - test'
+)
+
 <#
 .SYNOPSIS
     Quick setup checklist for GitHub branch protection and environments
@@ -22,8 +30,53 @@ This script will guide you through setting up:
 "@ -ForegroundColor Cyan
 
 # Get repository info
-$repo = "KingSila/kingsila-cloud-portfolio"
+$repo = $Repo
 $repoUrl = "https://github.com/$repo"
+
+if ($AutoProtect) {
+    Write-Host "\n⚙️ Applying branch protection automatically for '$Branch'..." -ForegroundColor Cyan
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-Host "GitHub CLI (gh) not found. Install from https://cli.github.com and re-run." -ForegroundColor Red
+        exit 1
+    }
+    # Build payload object
+    $payload = [ordered]@{
+        required_pull_request_reviews = [ordered]@{
+            required_approving_review_count = $Approvals
+            require_code_owner_reviews     = $false
+            require_last_push_approval     = $false
+            dismiss_stale_reviews          = $true
+        }
+        enforce_admins                 = $true
+        required_status_checks         = [ordered]@{
+            strict   = $true
+            contexts = $StatusChecks
+        }
+        restrictions                   = $null
+        allow_force_pushes             = $false
+        allow_deletions                = $false
+        required_linear_history        = $true
+        required_conversation_resolution = $true
+        block_fork_pr_creations        = $false
+        lock_branch                    = $false
+    }
+    $json = $payload | ConvertTo-Json -Depth 6
+    $tmp = New-TemporaryFile
+    Set-Content -Path $tmp -Value $json -Encoding UTF8
+    try {
+        gh api -X PUT "repos/$repo/branches/$Branch/protection" -H "Accept: application/vnd.github+json" --input $tmp --silent
+        Write-Host "✅ Branch protection applied for '$Branch'." -ForegroundColor Green
+        if ($StatusChecks.Count -eq 0) {
+            Write-Host "ℹ️ No status checks specified; add them manually later after workflows run." -ForegroundColor Yellow
+        }
+    }
+    catch {
+        Write-Host "❌ Failed to apply protection: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    finally {
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
 
 Write-Host "`n📋 CHECKLIST`n" -ForegroundColor Yellow
 
@@ -44,7 +97,7 @@ Write-Host "   ✓ Enable: Require linear history" -ForegroundColor White
 Write-Host "   ✓ Enable: Include administrators" -ForegroundColor White
 Write-Host ""
 
-$confirm = Read-Host "Press Enter when branch protection is configured"
+Read-Host "Press Enter when branch protection is configured (skip if AutoProtect used)"
 
 # Environments
 Write-Host "`n═══════════════════════════════════════════════════════════════" -ForegroundColor Gray
@@ -60,7 +113,7 @@ Write-Host "      ✓ Required reviewers: 0 (auto-deploy)" -ForegroundColor Whit
 Write-Host "      ✓ Deployment branches: main only" -ForegroundColor White
 Write-Host ""
 
-$confirm = Read-Host "Press Enter when 'dev' environment is configured"
+Read-Host "Press Enter when 'dev' environment is configured"
 
 # Dev-destroy environment
 Write-Host "`n   📦 Environment: dev-destroy" -ForegroundColor Cyan
@@ -70,7 +123,7 @@ Write-Host "      ✓ Required reviewers: 1" -ForegroundColor White
 Write-Host "      ✓ Deployment branches: main only" -ForegroundColor White
 Write-Host ""
 
-$confirm = Read-Host "Press Enter when 'dev-destroy' environment is configured"
+Read-Host "Press Enter when 'dev-destroy' environment is configured"
 
 # Test environment
 Write-Host "`n   📦 Environment: test" -ForegroundColor Cyan
@@ -81,7 +134,7 @@ Write-Host "      ✓ Wait timer: 5 minutes" -ForegroundColor White
 Write-Host "      ✓ Deployment branches: main only" -ForegroundColor White
 Write-Host ""
 
-$confirm = Read-Host "Press Enter when 'test' environment is configured"
+Read-Host "Press Enter when 'test' environment is configured"
 
 # Test-destroy environment
 Write-Host "`n   📦 Environment: test-destroy" -ForegroundColor Cyan
@@ -92,7 +145,7 @@ Write-Host "      ✓ Wait timer: 5 minutes" -ForegroundColor White
 Write-Host "      ✓ Deployment branches: main only" -ForegroundColor White
 Write-Host ""
 
-$confirm = Read-Host "Press Enter when 'test-destroy' environment is configured"
+Read-Host "Press Enter when 'test-destroy' environment is configured"
 
 # Verification
 Write-Host "`n═══════════════════════════════════════════════════════════════" -ForegroundColor Gray
