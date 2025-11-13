@@ -1,6 +1,10 @@
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "azurerm_virtual_network" "vnet" {
