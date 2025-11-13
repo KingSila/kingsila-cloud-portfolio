@@ -15,7 +15,7 @@ variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    environment = "dev"
+    environment = "development"
     owner       = "KingSila"
     project     = "CloudPortfolio"
   }
