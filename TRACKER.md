@@ -1,6 +1,7 @@
 # 12-Week Azure | Terraform | DevOps Tracker (Nov 2025 – Jan 2026)
 
 ## ✅ Week 1–2 : Azure Core + Terraform Foundations (COMPLETED)
+
 - [x] Review VNets, NSGs, route tables, subnets
 - [x] Create reusable Terraform modules (vnet, nsg, route_table)
 - [x] Configure remote state in Azure Storage (backend bootstrap)
@@ -10,6 +11,7 @@
 - [x] Notes committed (`/notes/day1_log.md`, `/notes/day2_log.md`, `/notes/day3_log.md`)
 
 ## Week 3–4 : RBAC, Environments & CI/CD (IN PROGRESS)
+
 - [x] Add GitHub Actions workflow for terraform plan/apply
 - [x] Implement approval gates for test deployments
 - [x] Create branch protection rules for main branch
