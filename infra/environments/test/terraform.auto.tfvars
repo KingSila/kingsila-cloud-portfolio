@@ -1,0 +1,29 @@
+# Common configuration
+prefix              = "kingsila"
+location            = "westeurope"
+resource_group_name = "rg-kingsila-test"
+vnet_name           = "vnet-kingsila-test"
+appsvc_subnet_name  = "snet-appsvc"
+
+tags = {
+  environment = "test"
+  owner       = "KingSila"
+  project     = "CloudPortfolio"
+}
+
+# Security configuration
+allowed_ssh_source = "192.168.18.3/32"
+allowed_rdp_source = "192.168.18.3/32"
+
+# Budget toggles
+enable_diagnostics = true
+log_retention_days = 30
+enable_nat         = false
+enable_bastion     = false
+
+# App Service
+appservice_sku    = "B1"
+app_runtime_stack = "DOTNET|8.0" # or NODE|20-lts, PYTHON|3.12
+
+# Optional inbound allowlist
+# allowed_ips = ["YOUR.PUBLIC.IP.HERE"]

@@ -75,7 +75,7 @@ jobs:
         id: plan
         working-directory: infra/environments/${{ matrix.environment }}
         run: |
-          terraform plan -var-file="terraform.tfvars" -out=tfplan -no-color
+          terraform plan -var-file="terraform.auto.tfvars" -out=tfplan -no-color
           terraform show -no-color tfplan > plan-output.txt
         continue-on-error: true
 
