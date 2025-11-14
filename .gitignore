@@ -62,3 +62,5 @@ playground/
 
 # Terraform plans
 *.plan
+
+.fake

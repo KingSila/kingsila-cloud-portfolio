@@ -12,21 +12,39 @@ on:
       - 'infra/**'
       - '.github/workflows/terraform-ci.yml'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
 
 env:
   TERRAFORM_VERSION: '1.13.0'
-  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   terraform-plan:
-    name: Terraform Plan
+    name: Terraform Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         environment: [dev, test]
+      fail-fast: false
+    
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     
     steps:
       - name: Checkout Code
@@ -38,29 +56,36 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform Format Check
+        id: fmt
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform fmt -check -recursive
         continue-on-error: true
 
       - name: Terraform Init
+        id: init
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform init
 
       - name: Terraform Validate
+        id: validate
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform validate
+        run: terraform validate -no-color
 
       - name: Terraform Plan
+        id: plan
         working-directory: infra/environments/${{ matrix.environment }}
         run: |
-          terraform plan -var-file="terraform.tfvars" -out=tfplan
+          terraform plan -var-file="terraform.tfvars" -out=tfplan -no-color
           terraform show -no-color tfplan > plan-output.txt
+        continue-on-error: true
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ matrix.environment }}
-          path: infra/environments/${{ matrix.environment }}/plan-output.txt
+          path: |
+            infra/environments/${{ matrix.environment }}/tfplan
+            infra/environments/${{ matrix.environment }}/plan-output.txt
           retention-days: 5
 
       - name: Comment PR with Plan
@@ -69,11 +94,33 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const plan = fs.readFileSync('infra/environments/${{ matrix.environment }}/plan-output.txt', 'utf8');
-            const output = `#### Terraform Plan - ${{ matrix.environment }} Environment
+            const planOutput = fs.readFileSync('infra/environments/${{ matrix.environment }}/plan-output.txt', 'utf8');
+            
+            // Create status indicators
+            const fmtStatus = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '⚠️';
+            const initStatus = '${{ steps.init.outcome }}' === 'success' ? '✅' : '❌';
+            const validateStatus = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
+            const planStatus = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
+            
+            const output = `### Terraform Plan - \`${{ matrix.environment }}\` Environment
+            
+            | Step | Status |
+            |------|--------|
+            | Format | ${fmtStatus} |
+            | Initialize | ${initStatus} |
+            | Validate | ${validateStatus} |
+            | Plan | ${planStatus} |
+            
+            <details>
+            <summary>📋 Show Plan Output</summary>
+            
+            \`\`\`terraform
+            ${planOutput.slice(0, 60000)}
             \`\`\`
-            ${plan.slice(0, 60000)}
-            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*
             `;
             
             github.rest.issues.createComment({
@@ -83,17 +130,20 @@ jobs:
               body: output
             });
 
-  terraform-apply:
-    name: Terraform Apply
+  terraform-apply-dev:
+    name: Terraform Apply - dev
     runs-on: ubuntu-latest
     needs: terraform-plan
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    strategy:
-      matrix:
-        environment: [dev]
-      max-parallel: 1
     environment: 
-      name: ${{ matrix.environment }}
+      name: dev
+      url: https://portal.azure.com
+    
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     
     steps:
       - name: Checkout Code
@@ -105,20 +155,81 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform Init
-        working-directory: infra/environments/${{ matrix.environment }}
+        working-directory: infra/environments/dev
         run: terraform init
 
-      - name: Terraform Apply
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform apply -var-file="terraform.tfvars" -auto-approve
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-dev
+          path: infra/environments/dev
 
-      - name: Output Results
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform output -json > outputs.json
+      - name: Terraform Apply
+        working-directory: infra/environments/dev
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Output
+        id: output
+        working-directory: infra/environments/dev
+        run: |
+          terraform output -json > outputs.json
+          echo "Outputs saved"
 
       - name: Upload Outputs
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-outputs-${{ matrix.environment }}
-          path: infra/environments/${{ matrix.environment }}/outputs.json
+          name: terraform-outputs-dev
+          path: infra/environments/dev/outputs.json
+          retention-days: 30
+
+  terraform-apply-test:
+    name: Terraform Apply - test
+    runs-on: ubuntu-latest
+    needs: [terraform-plan, terraform-apply-dev]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: 
+      name: test
+      url: https://portal.azure.com
+    
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Init
+        working-directory: infra/environments/test
+        run: terraform init
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-test
+          path: infra/environments/test
+
+      - name: Terraform Apply
+        working-directory: infra/environments/test
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Output
+        id: output
+        working-directory: infra/environments/test
+        run: |
+          terraform output -json > outputs.json
+          echo "Outputs saved"
+
+      - name: Upload Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-test
+          path: infra/environments/test/outputs.json
           retention-days: 30

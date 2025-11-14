@@ -40,6 +40,40 @@
         "showReuseMessage": false,
         "clear": false
       }
+    },
+    {
+      "label": "🌅 START OF DAY: Terraform Apply (DEV)",
+      "type": "shell",
+      "command": "terraform apply -var-file='terraform.tfvars' -auto-approve",
+      "options": {
+        "cwd": "${workspaceFolder}/infra/environments/dev"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "🌅 START OF DAY: Terraform Apply (TEST)",
+      "type": "shell",
+      "command": "terraform apply -var-file='terraform.tfvars' -auto-approve",
+      "options": {
+        "cwd": "${workspaceFolder}/infra/environments/test"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
     }
   ]
 }

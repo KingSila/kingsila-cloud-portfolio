@@ -30,10 +30,19 @@ provider "azurerm" {
 
 provider "random" {}
 
+###############################################
+# Resource Group (needed for fresh environment)
+###############################################
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
+  tags     = var.tags
+}
+
 module "vnet" {
   source              = "../../modules/vnet"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   vnet_name           = "vnet-kingsila-dev"
   address_space       = ["10.10.0.0/16"]
   subnets = {
@@ -51,7 +60,7 @@ module "nsg_app" {
   source              = "../../modules/nsg"
   nsg_name            = "nsg-app-dev"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   allowed_ssh_source  = var.allowed_ssh_source
   allowed_rdp_source  = var.allowed_rdp_source
   subnet_ids = {
@@ -59,7 +68,7 @@ module "nsg_app" {
     data = module.vnet.subnet_ids["data"]
   }
   tags = var.tags
-  
+
   depends_on = [module.vnet]
 }
 
@@ -67,13 +76,13 @@ module "route_table" {
   source              = "../../modules/route_table"
   route_table_name    = "dev-route-table"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   subnet_ids = {
     app  = module.vnet.subnet_ids["app"]
     data = module.vnet.subnet_ids["data"]
   }
   tags = var.tags
-  
+
   depends_on = [module.vnet]
 }
 
@@ -88,7 +97,7 @@ locals {
 # Ensure an app service subnet exists + delegated
 resource "azurerm_subnet" "appsvc" {
   name                 = var.appsvc_subnet_name
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = module.vnet.vnet_name
   address_prefixes     = ["10.10.20.0/27"] # adjust to your plan
 
@@ -101,7 +110,7 @@ resource "azurerm_subnet" "appsvc" {
       ]
     }
   }
-  
+
   depends_on = [module.vnet]
 }
 
@@ -122,18 +131,18 @@ resource "random_integer" "rand" {
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
-  name              = "${local.name}-law-${random_integer.rand.result}"
-  location          = var.location
-  resource_group_name = var.resource_group_name
-  sku               = "PerGB2018"
-  retention_in_days = var.log_retention_days
+  name                = "${local.name}-law-${random_integer.rand.result}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = var.log_retention_days
 }
 
 # Application Insights (workspace-based)
 resource "azurerm_application_insights" "appi" {
   name                = "${local.name}-appi-${random_integer.rand.result}"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   application_type    = "web"
   workspace_id        = azurerm_log_analytics_workspace.law.id
 }
@@ -142,7 +151,7 @@ resource "azurerm_application_insights" "appi" {
 resource "azurerm_service_plan" "plan" {
   name                = "${local.name}-asp"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Linux"
   sku_name            = var.appservice_sku # B1 by default
 }
@@ -151,7 +160,7 @@ resource "azurerm_service_plan" "plan" {
 resource "azurerm_linux_web_app" "web" {
   name                = "${local.name}-web"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
 
   site_config {

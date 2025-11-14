@@ -1,24 +1,69 @@
-# GitHub Actions CI/CD Setup
+# GitHub Actions CI/CD Workflows
 
-This directory contains GitHub Actions workflows for automated Terraform deployment.
+This directory contains GitHub Actions workflows for automated Terraform deployment and infrastructure management.
 
 ## 🚀 Workflows
 
-### `terraform-ci.yml`
+### 1. `terraform-ci.yml` - Main CI/CD Pipeline
+
 Automated Terraform validation, planning, and deployment pipeline.
 
 **Triggers:**
-- Pull Requests to `main` (runs plan only)
-- Push to `main` (runs plan + apply for dev)
-- Manual workflow dispatch
+- Pull Requests to `main` (validation and plan)
+- Push to `main` (plan + apply)
+- Manual workflow dispatch with environment selection
 
 **Features:**
 - ✅ Format checking (`terraform fmt`)
 - ✅ Validation (`terraform validate`)
 - ✅ Plan generation with artifacts
-- ✅ PR comments with plan output
-- ✅ Automated apply to dev environment
-- ✅ Matrix strategy for multi-environment support
+- ✅ PR comments with formatted plan output
+- ✅ Sequential deployment (dev → test)
+- ✅ Environment protection with approvals
+- ✅ Plan artifact preservation and reuse
+
+**Environments:**
+- `dev` - Auto-deploys on merge to main
+- `test` - Deploys after dev, requires approval
+
+### 2. `terraform-destroy.yml` - Controlled Destruction
+
+Manual workflow for safely destroying infrastructure.
+
+**Triggers:**
+- Manual dispatch only
+
+**Safety Features:**
+- ✅ Requires environment selection
+- ✅ Confirmation input ("destroy" to proceed)
+- ✅ Shows destroy plan before execution
+- ✅ Environment approval required
+- ✅ Detailed destruction summary
+
+**Use Case:**
+- End-of-day teardown to save costs
+- Environment cleanup
+- Resource decommissioning
+
+### 3. `terraform-drift-detection.yml` - Configuration Monitoring
+
+Automated detection of infrastructure drift.
+
+**Triggers:**
+- Daily at 9 AM UTC (cron schedule)
+- Manual dispatch
+
+**Features:**
+- ✅ Compares actual state vs. Terraform config
+- ✅ Creates GitHub issues for detected drift
+- ✅ Includes full drift details
+- ✅ Labels for easy tracking
+- ✅ Workflow summary with status
+
+**Use Case:**
+- Detect manual changes in Azure Portal
+- Compliance monitoring
+- Configuration audit trail
 
 ---
 
