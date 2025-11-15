@@ -64,7 +64,6 @@ jobs:
           az account show
           env | grep -E '^ARM_'
 
-          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -88,6 +87,22 @@ jobs:
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform validate -no-color
 
+      - name: Import existing resource group if needed
+        working-directory: infra/environments/${{ matrix.environment }}
+        env:
+          RESOURCE_GROUP: "rg-kingsila-${{ matrix.environment }}"
+          SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          if az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" > /dev/null 2>&1; then
+            if ! terraform state list | grep 'module.vnet.azurerm_resource_group.rg' > /dev/null; then
+              echo "Importing existing resource group $RESOURCE_GROUP into Terraform state..."
+              terraform import "module.vnet.azurerm_resource_group.rg" "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+            else
+              echo "Resource group $RESOURCE_GROUP already in Terraform state."
+            fi
+          else
+            echo "Resource group $RESOURCE_GROUP does not exist in Azure."
+          fi
 
       - name: Terraform Plan
         id: plan
