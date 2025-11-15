@@ -26,3 +26,9 @@ output "appinsights_connection_string" {
   value       = azurerm_application_insights.appi.connection_string
   sensitive   = true
 }
+
+output "ci_smoke_test" {
+  value       = "hello-from-pr-test"
+  description = "Harmless output to test CI. 20:02PM"
+}
+
