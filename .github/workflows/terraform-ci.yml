@@ -71,7 +71,7 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Ensure plugin cache
-        run: mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
       - name: Terraform FMT (check)
         id: fmt
@@ -87,6 +87,7 @@ jobs:
         id: validate
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform validate -no-color
+
 
       - name: Terraform Plan
         id: plan
