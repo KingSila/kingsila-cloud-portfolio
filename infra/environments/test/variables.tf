@@ -8,14 +8,14 @@ variable "location" {
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "rg-kingsila-dev"
+  default     = "rg-kingsila-test"
 }
 
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    environment = "dev"
+    environment = "test"
     owner       = "KingSila"
     project     = "CloudPortfolio"
   }
