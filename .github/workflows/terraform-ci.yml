@@ -88,41 +88,6 @@ jobs:
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform validate -no-color
 
-      - name: Auto-import preexisting resources (idempotent)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # If someone runs this on Windows Git Bash locally, avoid path mangling.
-          if [[ "${OS:-}" == "Windows_NT" ]]; then export MSYS_NO_PATHCONV=1; fi
-
-          # --- Helper: import if exists in Azure but not in Terraform state ---
-          ensure_import () {
-            local tf_address="$1"   # e.g. module.vnet.azurerm_resource_group.rg
-            local azure_id="$2"     # e.g. /subscriptions/.../resourceGroups/rg-xxx
-
-            if [[ -z "${azure_id}" ]]; then
-              echo "skip: no Azure ID for ${tf_address}"
-              return 0
-            fi
-
-            if terraform state list 2>/dev/null | grep -qx "${tf_address}"; then
-              echo "ok: ${tf_address} already in state"
-            else
-              echo "importing: ${tf_address} -> ${azure_id}"
-              terraform import "${tf_address}" "${azure_id}"
-            fi
-          }
-
-          # --- Example: Resource Group guard ---
-          # Provide RG name via env or secret. Prefer TF_VAR_* to keep single source of truth.
-          RG_NAME="${TF_VAR_resource_group_name:-${RG_NAME:-rg-kingsila-dev}}"
-
-          # Lookup Azure ID (empty if RG doesn't exist yet)
-          RG_ID="$(az group show -n "${RG_NAME}" --query id -o tsv 2>/dev/null || true)"
-
-          # Import into the EXACT address used in code
-          ensure_import "module.vnet.azurerm_resource_group.rg" "${RG_ID}"
 
       - name: Terraform Plan
         id: plan
