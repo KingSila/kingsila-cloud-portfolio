@@ -11,5 +11,6 @@
     "**/dist/**"
   ],
   "foam.openDailyNote.directory": "daily_logs",
-  "foam.edit.linkReferenceDefinitions": "withExtensions"
+  "foam.edit.linkReferenceDefinitions": "withExtensions",
+  "postman.settings.dotenv-detection-notification-visibility": false
 }
