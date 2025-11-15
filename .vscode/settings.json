@@ -1,3 +1,16 @@
 {
-    "postman.settings.dotenv-detection-notification-visibility": false
+  "foam.files.include": [
+    "notes/**/*.md",
+    "daily_logs/**/*.md"
+  ],
+  "foam.files.exclude": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/.vscode/**",
+    "**/tmp/**",
+    "**/dist/**"
+  ],
+  "foam.openDailyNote.directory": "daily_logs",
+  "foam.edit.linkReferenceDefinitions": "withExtensions",
+  "postman.settings.dotenv-detection-notification-visibility": false
 }
