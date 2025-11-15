@@ -59,7 +59,7 @@ module "nsg_app" {
     data = module.vnet.subnet_ids["data"]
   }
   tags = var.tags
-  
+
   depends_on = [module.vnet]
 }
 
@@ -73,7 +73,7 @@ module "route_table" {
     data = module.vnet.subnet_ids["data"]
   }
   tags = var.tags
-  
+
   depends_on = [module.vnet]
 }
 
@@ -101,7 +101,7 @@ resource "azurerm_subnet" "appsvc" {
       ]
     }
   }
-  
+
   depends_on = [module.vnet]
 }
 
@@ -122,11 +122,11 @@ resource "random_integer" "rand" {
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
-  name              = "${local.name}-law-${random_integer.rand.result}"
-  location          = var.location
+  name                = "${local.name}-law-${random_integer.rand.result}"
+  location            = var.location
   resource_group_name = var.resource_group_name
-  sku               = "PerGB2018"
-  retention_in_days = var.log_retention_days
+  sku                 = "PerGB2018"
+  retention_in_days   = var.log_retention_days
 }
 
 # Application Insights (workspace-based)

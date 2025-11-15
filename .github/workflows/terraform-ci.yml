@@ -63,6 +63,7 @@ jobs:
         run: |
           az account show
           env | grep -E '^ARM_'
+
           
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -70,7 +71,7 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Ensure plugin cache
-        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+        run: mkdir -p "${TF_PLUGIN_CACHE_DIR}"
 
       - name: Terraform FMT (check)
         id: fmt
