@@ -92,8 +92,8 @@ jobs:
         id: validate
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform validate -no-color
-
       - name: Import existing resource group if needed
+        if: github.event_name != 'pull_request'   # don't mutate state on PRs
         working-directory: infra/environments/${{ matrix.environment }}
         env:
           RESOURCE_GROUP: rg-kingsila-${{ matrix.environment }}
@@ -102,30 +102,43 @@ jobs:
         run: |
           set -euo pipefail
 
-          if az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
-            # Decide correct Terraform address dynamically
-            if terraform state list 2>/dev/null | grep -q '^azurerm_resource_group\.rg$'; then
-              ADDRESS="azurerm_resource_group.rg"
-            elif terraform state list 2>/dev/null | grep -q '^module\.vnet\.azurerm_resource_group\.rg$'; then
-              ADDRESS="module.vnet.azurerm_resource_group.rg"
-            elif grep -Rqs 'resource "azurerm_resource_group" "rg"' .; then
-              ADDRESS="azurerm_resource_group.rg"
-            elif grep -Rqs 'resource "azurerm_resource_group" "rg"' ../../modules/vnet 2>/dev/null; then
-              ADDRESS="module.vnet.azurerm_resource_group.rg"
-            else
-              echo "No azurerm_resource_group.rg defined in config; skipping import."
-              exit 0
-            fi
-
-            if ! terraform state list 2>/dev/null | grep -q "^${ADDRESS}$"; then
-              echo "Importing existing resource group $RESOURCE_GROUP into ${ADDRESS}..."
-              terraform import "${ADDRESS}" "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}"
-            else
-              echo "Resource group $RESOURCE_GROUP already in Terraform state at ${ADDRESS}."
-            fi
-          else
-            echo "Resource group $RESOURCE_GROUP does not exist in Azure; nothing to import."
+          # 0) Skip if RG doesn't exist in Azure
+          if ! az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
+            echo "Azure RG $RESOURCE_GROUP not found; skipping import."
+            exit 0
           fi
+
+          # 1) Decide Terraform address from config
+          ADDRESS=""
+          if grep -Rqs 'resource "azurerm_resource_group" "rg"' .; then
+            ADDRESS="azurerm_resource_group.rg"
+          elif grep -Rqs 'resource "azurerm_resource_group" "rg"' ../../modules/vnet 2>/dev/null; then
+            ADDRESS="module.vnet.azurerm_resource_group.rg"
+          else
+            echo "No azurerm_resource_group.rg in config; nothing to import."
+            exit 0
+          fi
+
+          EXPECTED_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}"
+
+          # 2) If state already has the RG at that address, verify it points to EXPECTED_ID
+          if terraform state show "${ADDRESS}" >/dev/null 2>&1; then
+            if terraform state show "${ADDRESS}" | grep -q "^id = ${EXPECTED_ID}\$"; then
+              echo "RG already tracked at ${ADDRESS} and matches ${EXPECTED_ID}; skipping import."
+              exit 0
+            else
+              echo "State has ${ADDRESS} but points to a different RG."
+              echo "Refusing to overwrite automatically. Manual fix:"
+              echo "  terraform state rm ${ADDRESS}"
+              echo "  terraform import ${ADDRESS} ${EXPECTED_ID}"
+              exit 1
+            fi
+          fi
+
+          # 3) Not in state → import it
+          echo "Importing ${RESOURCE_GROUP} into ${ADDRESS}..."
+          terraform import "${ADDRESS}" "${EXPECTED_ID}"
+
 
       - name: Terraform Plan
         id: plan
