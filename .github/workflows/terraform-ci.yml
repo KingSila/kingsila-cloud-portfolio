@@ -86,7 +86,8 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false
+        run: terraform init -upgrade -lock-timeout=2m -input=false \
+                -backend-config="key=env/${{ matrix.environment }}/terraform.tfstate"
 
       - name: Terraform Validate
         id: validate
@@ -265,7 +266,8 @@ jobs:
 
       - name: Terraform Init (for backend state)
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false
+        run: terraform init -upgrade -lock-timeout=2m -input=false \
+                -backend-config="key=env/${{ matrix.environment }}/terraform.tfstate"
 
       - name: Terraform Apply
         working-directory: infra/environments/${{ matrix.environment }}
