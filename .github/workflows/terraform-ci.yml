@@ -76,7 +76,9 @@ jobs:
             tf-plugins-${{ runner.os }}-
 
       - name: Ensure plugin cache dir
-        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/.terraform.d/plugin-cache"
 
       - name: Terraform FMT (check)
         id: fmt
@@ -86,8 +88,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false \
-                -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
+        run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
 
       - name: Terraform Validate
         id: validate
@@ -266,8 +267,8 @@ jobs:
 
       - name: Terraform Init (for backend state)
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false \
-                -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
+        run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
+                
 
       - name: Terraform Apply
         working-directory: infra/environments/${{ matrix.environment }}
