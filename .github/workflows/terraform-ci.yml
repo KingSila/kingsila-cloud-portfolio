@@ -20,7 +20,7 @@ on:
         options: [ dev, test, prod ]
 
 env:
-  TERRAFORM_VERSION: '1.13.0'           # keep pinned
+  TERRAFORM_VERSION: '1.13.0'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
@@ -41,7 +41,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # PR/push plan both lower envs; workflow_dispatch can target a single env
         environment: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.environment) || '["dev","test"]') }}
 
     concurrency:
@@ -51,7 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # OIDC login (no client secret)
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -69,7 +67,15 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Ensure plugin cache
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: tf-plugins-${{ runner.os }}-${{ env.TERRAFORM_VERSION }}
+          restore-keys: |
+            tf-plugins-${{ runner.os }}-
+
+      - name: Ensure plugin cache dir
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
       - name: Terraform FMT (check)
@@ -80,7 +86,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m
+        run: terraform init -upgrade -lock-timeout=2m -input=false
 
       - name: Terraform Validate
         id: validate
@@ -90,26 +96,42 @@ jobs:
       - name: Import existing resource group if needed
         working-directory: infra/environments/${{ matrix.environment }}
         env:
-          RESOURCE_GROUP: "rg-kingsila-${{ matrix.environment }}"
+          RESOURCE_GROUP: rg-kingsila-${{ matrix.environment }}
           SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        shell: bash
         run: |
-          if az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" > /dev/null 2>&1; then
-            if ! terraform state list | grep 'module.vnet.azurerm_resource_group.rg' > /dev/null; then
-              echo "Importing existing resource group $RESOURCE_GROUP into Terraform state..."
-              terraform import "module.vnet.azurerm_resource_group.rg" "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+          set -euo pipefail
+
+          if az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
+            # Decide correct Terraform address dynamically
+            if terraform state list 2>/dev/null | grep -q '^azurerm_resource_group\.rg$'; then
+              ADDRESS="azurerm_resource_group.rg"
+            elif terraform state list 2>/dev/null | grep -q '^module\.vnet\.azurerm_resource_group\.rg$'; then
+              ADDRESS="module.vnet.azurerm_resource_group.rg"
+            elif grep -Rqs 'resource "azurerm_resource_group" "rg"' .; then
+              ADDRESS="azurerm_resource_group.rg"
+            elif grep -Rqs 'resource "azurerm_resource_group" "rg"' ../../modules/vnet 2>/dev/null; then
+              ADDRESS="module.vnet.azurerm_resource_group.rg"
             else
-              echo "Resource group $RESOURCE_GROUP already in Terraform state."
+              echo "No azurerm_resource_group.rg defined in config; skipping import."
+              exit 0
+            fi
+
+            if ! terraform state list 2>/dev/null | grep -q "^${ADDRESS}$"; then
+              echo "Importing existing resource group $RESOURCE_GROUP into ${ADDRESS}..."
+              terraform import "${ADDRESS}" "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}"
+            else
+              echo "Resource group $RESOURCE_GROUP already in Terraform state at ${ADDRESS}."
             fi
           else
-            echo "Resource group $RESOURCE_GROUP does not exist in Azure."
+            echo "Resource group $RESOURCE_GROUP does not exist in Azure; nothing to import."
           fi
 
       - name: Terraform Plan
         id: plan
         working-directory: infra/environments/${{ matrix.environment }}
-        # keep artifacts small; also produce JSON for tooling
         run: |
-          terraform plan -no-color -out=tfplan -parallelism=10 || exit 1
+          terraform plan -no-color -out=tfplan -parallelism=10
           terraform show -no-color tfplan > plan.txt
           terraform show -json tfplan > plan.json
 
@@ -129,21 +151,27 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const env = process.env.ENVIRONMENT || '${{ matrix.environment }}';
-            const path = `infra/environments/${env}/plan.txt`;
+            const envName = process.env.ENVIRONMENT || '${{ matrix.environment }}';
+            const path = `infra/environments/${envName}/plan.txt`;
             const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : 'No plan output.';
             const slice = body.length > 50000 ? body.slice(0, 50000) + '\n\n…(truncated)…' : body;
+
+            // Pull step results directly from workflow context
+            const fmt = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '❌';
+            const init = '${{ steps.init.outcome }}' === 'success' ? '✅' : '❌';
+            const validate = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
+            const plan = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
 
             const table = `
             | Step | Status |
             |------|--------|
-            | Format | ${{ steps.fmt.outcome == 'success' && '✅' || '❌' }} |
-            | Initialize | ${{ steps.init.outcome == 'success' && '✅' || '❌' }} |
-            | Validate | ${{ steps.validate.outcome == 'success' && '✅' || '❌' }} |
-            | Plan | ${{ steps.plan.outcome == 'success' && '✅' || '❌' }} |
+            | Format | ${fmt} |
+            | Initialize | ${init} |
+            | Validate | ${validate} |
+            | Plan | ${plan} |
             `;
 
-            const comment = `### Terraform Plan — \`${env}\`
+            const comment = `### Terraform Plan — \`${envName}\`
             ${table}
 
             <details><summary>📋 Plan Output</summary>
@@ -156,14 +184,13 @@ jobs:
 
             _Commit: ${context.sha}_`;
 
-            // Upsert a single comment per env
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const marker = `Terraform Plan — \`${env}\``;
+            const marker = `Terraform Plan — \`${envName}\``;
             const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
             if (existing) {
               await github.rest.issues.updateComment({
@@ -196,7 +223,7 @@ jobs:
       cancel-in-progress: false
 
     environment:
-      name: ${{ matrix.environment }}      # protect/require approvals in repo settings
+      name: ${{ matrix.environment }}
       url: https://portal.azure.com
 
     steps:
@@ -214,7 +241,7 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Ensure plugin cache
+      - name: Ensure plugin cache dir
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
       - name: Download Plan Artifact
@@ -225,7 +252,7 @@ jobs:
 
       - name: Terraform Init (for backend state)
         working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m
+        run: terraform init -upgrade -lock-timeout=2m -input=false
 
       - name: Terraform Apply
         working-directory: infra/environments/${{ matrix.environment }}
