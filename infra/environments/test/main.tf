@@ -151,7 +151,7 @@ resource "azurerm_application_insights" "appi" {
 resource "azurerm_service_plan" "plan" {
   name                = "${local.name}-asp"
   location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = "rg-kingsila-test-app"
   os_type             = "Linux"
   sku_name            = var.appservice_sku # B1 by default
 }
