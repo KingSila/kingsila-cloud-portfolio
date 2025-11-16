@@ -29,6 +29,6 @@ output "appinsights_connection_string" {
 
 output "ci_smoke_test" {
   value       = "hello-from-pr"
-  description = "Harmless output to test CI. 00:51PM"
+  description = "Harmless output to test CI. 15:51PM"
 }
 
