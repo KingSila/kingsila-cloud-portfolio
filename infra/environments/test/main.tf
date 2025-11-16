@@ -158,7 +158,7 @@ resource "azurerm_service_plan" "plan" {
 
 # Web App
 resource "azurerm_linux_web_app" "web" {
-  name                = "${local.name}-dev-web"
+  name                = "${local.name}-test-web"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
