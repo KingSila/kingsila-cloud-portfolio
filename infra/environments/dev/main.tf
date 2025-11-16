@@ -149,7 +149,7 @@ resource "azurerm_application_insights" "appi" {
 
 # App Service Plan (Linux)
 resource "azurerm_service_plan" "plan" {
-  name                = "${local.name}-asp"
+  name                = "${local.name}-dev-asp"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Linux"
