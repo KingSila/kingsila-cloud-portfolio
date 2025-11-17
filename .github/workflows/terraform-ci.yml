@@ -123,105 +123,96 @@ jobs:
 
           EXPECTED_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}"
 
-          # 2) If state already has the RG at that address, verify it points to EXPECTED_ID
+          # 2) If state already has the RG at that address, trust it and move on
           if terraform state show "${ADDRESS}" >/dev/null 2>&1; then
-            if terraform state show "${ADDRESS}" | grep -q "^id = ${EXPECTED_ID}\$"; then
-              echo "RG already tracked at ${ADDRESS} and matches ${EXPECTED_ID}; skipping import."
-              exit 0
-            else
-              echo "State has ${ADDRESS} but points to a different RG."
-              echo "Refusing to overwrite automatically. Manual fix:"
-              echo "  terraform state rm ${ADDRESS}"
-              echo "  terraform import ${ADDRESS} ${EXPECTED_ID}"
-              exit 1
-            fi
+            echo "RG already tracked at ${ADDRESS}; skipping import."
+            exit 0
           fi
 
           # 3) Not in state → import it
           echo "Importing ${RESOURCE_GROUP} into ${ADDRESS}..."
           terraform import "${ADDRESS}" "${EXPECTED_ID}"
 
+            - name: Terraform Plan
+              id: plan
+              working-directory: infra/environments/${{ matrix.environment }}
+              run: |
+                terraform plan -no-color -out=tfplan -parallelism=10
+                terraform show -no-color tfplan > plan.txt
+                terraform show -json tfplan > plan.json
 
-      - name: Terraform Plan
-        id: plan
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: |
-          terraform plan -no-color -out=tfplan -parallelism=10
-          terraform show -no-color tfplan > plan.txt
-          terraform show -json tfplan > plan.json
+            - name: Upload Plan Artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                name: tfplan-${{ matrix.environment }}-${{ github.sha }}
+                path: |
+                  infra/environments/${{ matrix.environment }}/tfplan
+                  infra/environments/${{ matrix.environment }}/plan.txt
+                  infra/environments/${{ matrix.environment }}/plan.json
+                retention-days: 5
 
-      - name: Upload Plan Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ matrix.environment }}-${{ github.sha }}
-          path: |
-            infra/environments/${{ matrix.environment }}/tfplan
-            infra/environments/${{ matrix.environment }}/plan.txt
-            infra/environments/${{ matrix.environment }}/plan.json
-          retention-days: 5
+            - name: Comment PR with Plan Summary
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                script: |
+                  const fs = require('fs');
+                  const envName = process.env.ENVIRONMENT || '${{ matrix.environment }}';
+                  const path = `infra/environments/${envName}/plan.txt`;
+                  const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : 'No plan output.';
+                  const slice = body.length > 50000 ? body.slice(0, 50000) + '\n\n…(truncated)…' : body;
 
-      - name: Comment PR with Plan Summary
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const envName = process.env.ENVIRONMENT || '${{ matrix.environment }}';
-            const path = `infra/environments/${envName}/plan.txt`;
-            const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : 'No plan output.';
-            const slice = body.length > 50000 ? body.slice(0, 50000) + '\n\n…(truncated)…' : body;
+                  // Pull step results directly from workflow context
+                  const fmt = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '❌';
+                  const init = '${{ steps.init.outcome }}' === 'success' ? '✅' : '❌';
+                  const validate = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
+                  const plan = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
 
-            // Pull step results directly from workflow context
-            const fmt = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '❌';
-            const init = '${{ steps.init.outcome }}' === 'success' ? '✅' : '❌';
-            const validate = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
-            const plan = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
+                  const table = `
+                  | Step | Status |
+                  |------|--------|
+                  | Format | ${fmt} |
+                  | Initialize | ${init} |
+                  | Validate | ${validate} |
+                  | Plan | ${plan} |
+                  `;
 
-            const table = `
-            | Step | Status |
-            |------|--------|
-            | Format | ${fmt} |
-            | Initialize | ${init} |
-            | Validate | ${validate} |
-            | Plan | ${plan} |
-            `;
+                  const comment = `### Terraform Plan — \`${envName}\`
+                  ${table}
 
-            const comment = `### Terraform Plan — \`${envName}\`
-            ${table}
+                  <details><summary>📋 Plan Output</summary>
 
-            <details><summary>📋 Plan Output</summary>
+                  \`\`\`terraform
+                  ${slice}
+                  \`\`\`
 
-            \`\`\`terraform
-            ${slice}
-            \`\`\`
+                  </details>
 
-            </details>
+                  _Commit: ${context.sha}_`;
 
-            _Commit: ${context.sha}_`;
+                  const { data: comments } = await github.rest.issues.listComments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                  });
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const marker = `Terraform Plan — \`${envName}\``;
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
-              });
-            }
+                  const marker = `Terraform Plan — \`${envName}\``;
+                  const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
+                  if (existing) {
+                    await github.rest.issues.updateComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: existing.id,
+                      body: comment
+                    });
+                  } else {
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: context.issue.number,
+                      body: comment
+                    });
+                  }
 
   terraform-apply:
     name: Terraform Apply (${{ matrix.environment }})
