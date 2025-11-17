@@ -3,7 +3,7 @@
   "startDate": "2025-11-07",
   "endDate": "2026-01-30",
   "totalWeeks": 12,
-  "overallProgress": 20,
+  "overallProgress": 25,
   "weeklyProgress": {
     "week1-2": {
       "title": "Azure Core + Terraform Foundations",
@@ -29,18 +29,22 @@
     },
     "week3-4": {
       "title": "RBAC, Environments & CI/CD",
-      "status": "not-started",
-      "progressPercent": 0,
-      "tasksCompleted": [],
+      "status": "in-progress",
+      "progressPercent": 25,
+      "tasksCompleted": [
+        "Set up directory-based environments for dev and test",
+        "Configured separate remote state keys per environment (dev/test)",
+        "Implemented GitHub Actions workflow for Terraform plan/apply with matrix environments",
+        "Added artifact-based Terraform plan/apply split (tfplan-dev/test)",
+        "Implemented safe RG import automation in CI (only when missing from state)"
+      ],
       "tasksRemaining": [
         "Set up Management Groups & RBAC policies",
-        "Create test and prod environments",
-        "Implement Terraform workspaces or directory-based environments",
-        "Add GitHub Actions workflow for terraform plan/apply",
+        "Create prod environment",
         "Implement approval gates for prod deployments",
         "Add pre-commit hooks and validation"
       ],
-      "hoursSpent": 0
+      "hoursSpent": 3
     },
     "week5-6": {
       "title": "Security, Monitoring & Secrets Management",
@@ -106,25 +110,27 @@
     }
   },
   "dailyLogs": {
-    "date": "2025-11-07",
-    "week": "week1-2",
-    "hoursSpent": 4,
+    "date": "2025-11-17",
+    "week": "week3-4",
+    "hoursSpent": 3,
     "tasksCompleted": [
-      "Fixed Terraform module duplication errors",
-      "Created Service Principal (terraform-sp)",
-      "Set up project structure",
-      "Investigated Terraform backend setup"
+      "Fixed Terraform CI/CD YAML so plan and artifact upload run as separate steps",
+      "Standardised Terraform plan artifact naming (tfplan-dev/test) and wiring into apply job",
+      "Verified separate remote state keys for dev and test environments",
+      "Implemented safe RG import logic in CI using az + terraform state checks"
     ],
     "challenges": [
-      "Git Bash path conversion breaking Azure CLI commands",
-      "Duplicate output definitions in Terraform"
+      "GitHub Actions YAML indentation caused plan and upload steps not to run as real steps",
+      "Apply job failing because tfplan artifact was never uploaded",
+      "Historical state/import confusion around dev/test RGs made error messages noisy"
     ],
     "learnings": [
-      "Terraform backends don't create their own infrastructure",
-      "MSYS2_ARG_CONV_EXCL workaround for Git Bash",
-      "PowerShell provides smoother Azure CLI experience"
+      "GitHub Actions step indentation is critical – - name: must not live inside run: blocks",
+      "Terraform imports belong in one-off fixes, not as repeated actions in CI unless very carefully controlled",
+      "Using stable artifact names and matching download names avoids a whole class of CI failures",
+      "Remote state keys per environment make debugging state issues much easier"
     ],
-    "notes": "First day focused on environment setup and fixing initial Terraform issues. Need to decide on backend strategy."
+    "notes": "Today focused on stabilising the Terraform CI/CD pipeline with proper plan/apply separation, artifact handling, and safe RG import behaviour. Dev and test environments are now wired cleanly into the workflow, setting up a solid base for further RBAC and environment work."
   },
   "skills": {
     "azure": {
@@ -159,7 +165,7 @@
   "badges": {
     "weeklyStreak": 1,
     "modulesCreated": 3,
-    "pipelinesBuilt": 0,
+    "pipelinesBuilt": 1,
     "issuesResolved": 8,
     "weekCompleted": 1
   }
