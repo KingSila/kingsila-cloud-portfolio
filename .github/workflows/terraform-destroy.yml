@@ -4,78 +4,82 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to destroy'
+        description: "Environment to destroy (dev/test)"
         required: true
         type: choice
         options:
           - dev
           - test
       confirm:
-        description: 'Type "destroy" to confirm'
+        description: 'Type "DESTROY" to confirm you understand this is irreversible'
         required: true
         type: string
 
-env:
-  TERRAFORM_VERSION: '1.13.0'
-
-permissions:
-  contents: read
-
 jobs:
   terraform-destroy:
-    name: Terraform Destroy - ${{ inputs.environment }}
+    name: Terraform Destroy
     runs-on: ubuntu-latest
-    environment: 
-      name: ${{ inputs.environment }}-destroy
-    
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-    
-    steps:
-      - name: Validate Confirmation
-        run: |
-          if [ "${{ inputs.confirm }}" != "destroy" ]; then
-            echo "❌ Confirmation failed. You must type 'destroy' to proceed."
-            exit 1
-          fi
-          echo "✅ Confirmation validated"
 
-      - name: Checkout Code
+    # Extra guardrail: only run if confirm == DESTROY
+    if: ${{ github.event.inputs.confirm == 'DESTROY' }}
+
+    # Optional: map to GitHub environments for approvals
+    environment: destroy-${{ github.event.inputs.environment }}
+
+    permissions:
+      id-token: write       # required for OIDC
+      contents: read
+      pull-requests: read
+
+    env:
+      TF_IN_AUTOMATION: "true"
+      ARM_USE_OIDC: "true"
+      TF_VAR_environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set environment-specific variables
+        id: envvars
+        run: |
+          case "${{ github.event.inputs.environment }}" in
+            dev)
+              echo "TF_WORKING_DIR=infra/environments/dev" >> "$GITHUB_OUTPUT"
+              ;;
+            test)
+              echo "TF_WORKING_DIR=infra/environments/test" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown environment: ${{ github.event.inputs.environment }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Azure login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          # Uses federated identity credential; no secret needed
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_version: 1.9.8
 
       - name: Terraform Init
-        working-directory: infra/environments/${{ inputs.environment }}
-        run: terraform init
-
-      - name: Terraform Plan Destroy
-        id: plan
-        working-directory: infra/environments/${{ inputs.environment }}
+        working-directory: ${{ steps.envvars.outputs.TF_WORKING_DIR }}
         run: |
-          terraform plan -destroy -var-file="terraform.tfvars" -out=destroy-plan -no-color
-          terraform show -no-color destroy-plan > destroy-plan-output.txt
+          terraform init -input=false
 
-      - name: Show Destroy Plan
-        working-directory: infra/environments/${{ inputs.environment }}
-        run: cat destroy-plan-output.txt
-
-      - name: Terraform Destroy
-        working-directory: infra/environments/${{ inputs.environment }}
-        run: terraform apply -auto-approve destroy-plan
-
-      - name: Cleanup Summary
+      - name: Terraform Plan (destroy)
+        working-directory: ${{ steps.envvars.outputs.TF_WORKING_DIR }}
         run: |
-          echo "### 🗑️ Environment Destroyed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** \`${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Destroyed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ All resources have been destroyed successfully" >> $GITHUB_STEP_SUMMARY
+          terraform plan -destroy -input=false -out=tfplan.destroy
+
+      - name: Terraform Apply (destroy)
+        working-directory: ${{ steps.envvars.outputs.TF_WORKING_DIR }}
+        run: |
+          terraform apply -input=false -auto-approve tfplan.destroy
