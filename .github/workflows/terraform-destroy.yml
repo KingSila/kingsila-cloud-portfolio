@@ -32,8 +32,11 @@ jobs:
       pull-requests: read
 
     env:
-      TF_IN_AUTOMATION: "true"
-      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+      TF_IN_AUTOMATION: true
       TF_VAR_environment: ${{ github.event.inputs.environment }}
 
     steps:
