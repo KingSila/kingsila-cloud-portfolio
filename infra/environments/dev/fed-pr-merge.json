@@ -1,0 +1,9 @@
+{
+  "name": "github-pr-merge",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:KingSila/kingsila-cloud-portfolio:ref:refs/pull/*/merge",
+  "description": "GitHub Actions OIDC for PR merges",
+  "audiences": [
+    "api://AzureADTokenExchange"
+  ]
+}
