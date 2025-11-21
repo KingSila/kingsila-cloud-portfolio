@@ -39,10 +39,10 @@ rg-kingsila-test (Resource Group)
 ### Required Tools
 - **Azure CLI** (logged in)
   ```powershell
-  az login
+  az logi
   az account show
   ```
-- **Terraform** >= 1.13.0
+- **Terraform** >= 1.9.08
   ```powershell
   terraform version
   ```

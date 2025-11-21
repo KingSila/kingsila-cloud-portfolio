@@ -20,7 +20,7 @@ on:
         options: [ dev, test, prod ]
 
 env:
-  TERRAFORM_VERSION: '1.13.0'
+  TERRAFORM_VERSION: '1.9.8'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
