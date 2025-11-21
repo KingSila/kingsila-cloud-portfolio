@@ -32,6 +32,4 @@ jobs:
         run: terraform init -input=false
 
       - name: Force unlock
-        run: terraform force-unlock ${{ github.event.inputs.lock_id }} << 'EOF'
-yes
-EOF
+        run: terraform force-unlock ${{ github.event.inputs.lock_id }}
