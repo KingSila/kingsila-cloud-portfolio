@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.13.0"
+  required_version = ">= 1.9.8"
 
   backend "azurerm" {
     resource_group_name  = "tfstate-rg"

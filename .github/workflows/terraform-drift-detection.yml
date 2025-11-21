@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  TERRAFORM_VERSION: '1.13.0'
+  TERRAFORM_VERSION: '1.9.8'
 
 permissions:
   contents: read

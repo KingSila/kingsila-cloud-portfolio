@@ -86,7 +86,7 @@ pipelines/          → Additional pipeline configurations
 
 ### Prerequisites
 - Azure CLI installed and authenticated
-- Terraform >= 1.13.0
+- Terraform >= 1.9.8
 - GitHub account with repository secrets configured
 
 ### Setup CI/CD

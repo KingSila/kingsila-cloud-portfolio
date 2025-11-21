@@ -39,7 +39,7 @@ rg-kingsila-dev (Resource Group)
   az login
   az account show
   ```
-- **Terraform** >= 1.13.0
+- **Terraform** >= 1.9.0
   ```powershell
   terraform version
   ```
