@@ -1,0 +1,84 @@
+name: Terraform Apply (prod)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type APPLY-PROD to confirm applying changes to prod"
+        required: true
+        default: "NO"
+
+env:
+  TERRAFORM_VERSION: '1.9.8'
+  TF_IN_AUTOMATION: 'true'
+  TF_INPUT: 'false'
+  TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+  ARM_USE_OIDC: true
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply-prod:
+    if: ${{ github.event.inputs.confirm == 'APPLY-PROD' }}
+    runs-on: ubuntu-latest
+
+    environment:
+      name: prod
+      url: https://portal.azure.com
+
+    concurrency:
+      group: tf-apply-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Ensure plugin cache dir
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/.terraform.d/plugin-cache"
+
+      - name: Terraform Init (prod)
+        working-directory: infra/environments/prod
+        run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=prod/terraform.tfstate"
+
+      - name: Terraform Validate (prod)
+        working-directory: infra/environments/prod
+        run: terraform validate -no-color
+
+      - name: Terraform Plan (prod)
+        working-directory: infra/environments/prod
+        run: |
+          terraform plan -no-color -out=tfplan.prod -parallelism=10
+          terraform show -no-color tfplan.prod > plan-prod.txt
+
+      - name: Upload Plan Artifact (prod)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-prod
+          path: |
+            infra/environments/prod/tfplan.prod
+            infra/environments/prod/plan-prod.txt
+          retention-days: 5
+
+      - name: Terraform Apply (prod)
+        working-directory: infra/environments/prod
+        run: terraform apply -auto-approve tfplan.prod
