@@ -20,10 +20,10 @@
 - [x] Implement drift detection with daily monitoring
 - [x] Document CI/CD pipeline in `/docs/cicd.md`
 - [x] Create GitHub setup guide in `/docs/github-setup.md`
-- [x] Test CI/CD pipeline with sample PR  ✅ *( Pushed trivial tag change to test Terraform CI pipeline (PR + plan)!)*
-- [ ] Set up Management Groups & RBAC policies
-- [ ] Create prod environment (replicate dev/test pattern)
-- [ ] Add pre-commit hooks and validation
+- [x] Test CI/CD pipeline with sample PR  *(Pushed trivial tag change to test Terraform CI pipeline!)*
+- [x] Set up Management Groups & RBAC policies
+- [x] Create prod environment (replicate dev/test pattern)
+- [x] Add pre-commit hooks and validation
 
 ## Week 5–6 : Security, Monitoring & Secrets Management
 
