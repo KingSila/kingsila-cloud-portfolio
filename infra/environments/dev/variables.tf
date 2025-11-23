@@ -94,3 +94,8 @@ variable "allowed_ips" {
   type        = list(string)
   default     = []
 }
+
+variable "terraform_principal_object_id" {
+  type        = string
+  description = "Object ID of the service principal / federated identity used by Terraform in CI for dev."
+}

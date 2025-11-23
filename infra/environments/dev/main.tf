@@ -39,6 +39,13 @@ resource "azurerm_resource_group" "rg" {
   tags     = var.tags
 }
 
+resource "azurerm_role_assignment" "kv_terraform_dev" {
+  scope                = module.keyvault_dev.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = var.terraform_principal_object_id
+}
+
+
 data "azurerm_client_config" "current" {}
 
 module "keyvault_dev" {
@@ -198,6 +205,10 @@ resource "azurerm_linux_web_app" "web" {
     application_stack {
       dotnet_version = "8.0"
     }
+  }
+
+  app_settings = {
+    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_secret.id})"
   }
 
   # VNet Integration
