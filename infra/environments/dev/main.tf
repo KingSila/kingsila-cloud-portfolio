@@ -59,6 +59,17 @@ module "keyvault_dev" {
   # }
 }
 
+resource "azurerm_key_vault_secret" "app_secret" {
+  name         = "connection-string"
+  value        = "placeholder-value" # later replaced by pipeline
+  key_vault_id = module.keyvault_dev.id
+
+  depends_on = [
+    module.keyvault_dev
+  ]
+}
+
+
 module "vnet" {
   source              = "../../modules/vnet"
   location            = var.location
