@@ -19,9 +19,9 @@ resource "azurerm_resource_group" "tfstate" {
   location = "westeurope"
 
   tags = {
-    purpose     = "terraform-state"
-    managed_by  = "terraform"
-    project     = "CloudPortfolio"
+    purpose    = "terraform-state"
+    managed_by = "terraform"
+    project    = "CloudPortfolio"
   }
 }
 

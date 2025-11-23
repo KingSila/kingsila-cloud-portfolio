@@ -84,7 +84,7 @@ try {
     $outputs = $outputsRaw | ConvertFrom-Json
 
     $summaryLines = @()
-    $summaryLines += "`n### Environment Started: $Environment ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))" 
+    $summaryLines += "`n### Environment Started: $Environment ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))"
     foreach ($key in $outputs.PSObject.Properties.Name) {
         $val = $outputs.$key.value
         # Use $() to avoid lint false positive on colon after variable

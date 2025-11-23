@@ -102,11 +102,11 @@ if ($weekData.status -eq "not-started") {
 }
 
 # Update badges
-$progress.badges.weeklyStreak = ($progress.dailyLogs | 
+$progress.badges.weeklyStreak = ($progress.dailyLogs |
     Where-Object { [datetime]$_.date -ge (Get-Date).AddDays(-7) }).Count
 
-$progress.badges.issuesResolved = ($progress.dailyLogs | 
-    ForEach-Object { $_.challenges.Count } | 
+$progress.badges.issuesResolved = ($progress.dailyLogs |
+    ForEach-Object { $_.challenges.Count } |
     Measure-Object -Sum).Sum
 
 # Save updated progress

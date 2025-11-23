@@ -14,10 +14,10 @@ resource "azurerm_network_security_rule" "allow_ssh" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "22"
-  source_address_prefix        = var.allowed_ssh_source
-  destination_address_prefix   = "*"
-  network_security_group_name  = azurerm_network_security_group.this.name
-  resource_group_name          = var.resource_group_name
+  source_address_prefix       = var.allowed_ssh_source
+  destination_address_prefix  = "*"
+  network_security_group_name = azurerm_network_security_group.this.name
+  resource_group_name         = var.resource_group_name
 }
 
 resource "azurerm_network_security_rule" "allow_rdp" {
@@ -28,10 +28,10 @@ resource "azurerm_network_security_rule" "allow_rdp" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "3389"
-  source_address_prefix        = var.allowed_rdp_source
-  destination_address_prefix   = "*"
-  network_security_group_name  = azurerm_network_security_group.this.name
-  resource_group_name          = var.resource_group_name
+  source_address_prefix       = var.allowed_rdp_source
+  destination_address_prefix  = "*"
+  network_security_group_name = azurerm_network_security_group.this.name
+  resource_group_name         = var.resource_group_name
 }
 
 # Optional subnet association (only if provided)

@@ -39,6 +39,26 @@ resource "azurerm_resource_group" "rg" {
   tags     = var.tags
 }
 
+data "azurerm_client_config" "current" {}
+
+module "keyvault_dev" {
+  source = "../../modules/keyvault" # adjust relative path
+
+  name                = lower("kv-${var.tags.owner}-${var.tags.environment}") # e.g. kv-kingsila-dev
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+
+  tags = var.tags
+
+  # access_identities = {
+  #   app_service = {
+  #     principal_id = azurerm_linux_web_app.app.identity[0].principal_id
+  #     role         = "Key Vault Secrets User"
+  #   }
+  # }
+}
+
 module "vnet" {
   source              = "../../modules/vnet"
   location            = var.location

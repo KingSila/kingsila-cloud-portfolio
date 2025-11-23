@@ -1,6 +1,6 @@
 # KingSila Cloud Portfolio – Azure | Terraform | DevOps
 
-Welcome 👋  
+Welcome 👋
 This repository documents my hands-on journey from experienced engineer to
 **Senior Cloud Engineer (Azure / Terraform / DevOps)** ready for
 remote roles in the **US** and **Europe**.
@@ -8,22 +8,22 @@ remote roles in the **US** and **Europe**.
 ---
 
 ## 🚀 Purpose
-- Strengthen production-grade Azure infrastructure and DevOps expertise.  
-- Build reusable Terraform modules for enterprise-scale deployments.  
-- Demonstrate automation and CI/CD design through real projects.  
+- Strengthen production-grade Azure infrastructure and DevOps expertise.
+- Build reusable Terraform modules for enterprise-scale deployments.
+- Demonstrate automation and CI/CD design through real projects.
 - Showcase portfolio projects and continuous learning progress.
 
 ---
 
 ## 📆 Timeline
-**November 2025 → January 2026**  
+**November 2025 → January 2026**
 12-week plan focused on:
-1. Azure core infrastructure & governance  
-2. Terraform advanced modules  
-3. CI/CD and automation  
-4. Security, monitoring, and cost optimisation  
-5. Containers & AKS  
-6. Final portfolio project + interview prep  
+1. Azure core infrastructure & governance
+2. Terraform advanced modules
+3. CI/CD and automation
+4. Security, monitoring, and cost optimisation
+5. Containers & AKS
+6. Final portfolio project + interview prep
 
 See [`TRACKER.md`](./TRACKER.md) for week-by-week milestones.
 
@@ -62,10 +62,10 @@ pipelines/          → Additional pipeline configurations
 
 ## 🧩 Featured Portfolio Project
 **End-to-End Azure Cloud Infrastructure with Terraform & GitHub Actions**
-- Hub-and-Spoke network  
-- AKS deployment with Managed Identity  
-- Full CI/CD pipeline  
-- Security policies, monitoring, cost controls  
+- Hub-and-Spoke network
+- AKS deployment with Managed Identity
+- Full CI/CD pipeline
+- Security policies, monitoring, cost controls
 
 ---
 
@@ -163,28 +163,28 @@ See [`docs/cicd.md`](./docs/cicd.md) for detailed pipeline documentation.
 
 This repository follows strict security and privacy guidelines to prevent accidental exposure of sensitive information:
 
-- **No credentials or secrets** are stored in the repository.  
+- **No credentials or secrets** are stored in the repository.
   All secrets (keys, tokens, passwords, IP addresses) are passed securely through environment variables or `.tfvars` files that are excluded from version control.
 
-- **Terraform state files are ignored** (`*.tfstate`, `*.tfstate.*`).  
+- **Terraform state files are ignored** (`*.tfstate`, `*.tfstate.*`).
   State files often contain resource IDs and connection strings — keeping them local prevents leaking internal infrastructure details.
 
 - **Local variable and configuration files** such as `terraform.tfvars`, `.env`, or CLI credentials under `.azure/` are never committed.
 
-- **Example placeholders only** are used for sensitive inputs (e.g., `"YOUR_PUBLIC_IP/32"` instead of real IPs).  
+- **Example placeholders only** are used for sensitive inputs (e.g., `"YOUR_PUBLIC_IP/32"` instead of real IPs).
   Always replace these locally before running deployments.
 
 - **GitHub secrets** or secure pipelines (like Azure DevOps variable groups) are used for automated workflows.
 
-- **Security scanning** is encouraged.  
+- **Security scanning** is encouraged.
   Use tools like [tfsec](https://aquasecurity.github.io/tfsec/), [Trivy](https://github.com/aquasecurity/trivy), or GitHub’s built-in secret scanning to continuously check the repo.
 
 ---
 
 ### 🧠 Tip: Keep Your Local Environment Safe
 
-- Store your IPs, credentials, and other private variables in `terraform.tfvars` or environment variables.  
-- Never push `.tfvars` or `.env` files — they’re ignored by `.gitignore`.  
+- Store your IPs, credentials, and other private variables in `terraform.tfvars` or environment variables.
+- Never push `.tfvars` or `.env` files — they’re ignored by `.gitignore`.
 - Use `terraform apply -var` flags or environment variables (`TF_VAR_*`) to pass values securely at runtime.
 
 ---
@@ -197,10 +197,9 @@ Maintaining a clean boundary between public code and private configuration keeps
 
 ## 🤝 Connect
 
-**LinkedIn:** [linkedin.com/in/silasmokone](https://www.linkedin.com/in/silasmokone/)  
-**GitHub:** [github.com/KingSila](https://github.com/KingSila)  
+**LinkedIn:** [linkedin.com/in/silasmokone](https://www.linkedin.com/in/silasmokone/)
+**GitHub:** [github.com/KingSila](https://github.com/KingSila)
 
 ## Branch Protection Test
-This repository uses branch protection rules to enforce code quality and security best practices.  
+This repository uses branch protection rules to enforce code quality and security best practices.
 See [`docs/github-setup.md`](./docs/github-setup.md) for setup instructions.
-

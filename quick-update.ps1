@@ -4,13 +4,13 @@
 param(
     [Parameter(Mandatory=$true)]
     [int]$Hours,
-    
+
     [Parameter(Mandatory=$true)]
     [string[]]$Tasks,
-    
+
     [Parameter(Mandatory=$true)]
     [int]$Week,
-    
+
     [string]$Notes = ""
 )
 
@@ -59,7 +59,7 @@ if ($weekData.status -eq "not-started") {
 }
 
 # Update badges
-$progress.badges.weeklyStreak = ($progress.dailyLogs | 
+$progress.badges.weeklyStreak = ($progress.dailyLogs |
     Where-Object { [datetime]$_.date -ge (Get-Date).AddDays(-7) }).Count
 
 # Save

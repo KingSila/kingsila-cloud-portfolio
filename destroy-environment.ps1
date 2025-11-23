@@ -57,7 +57,7 @@ try {
 
     if ($SummaryFile) {
         $lines = @()
-        $lines += "`n### Environment Destroyed: $Environment ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))" 
+        $lines += "`n### Environment Destroyed: $Environment ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))"
         if ($remaining) {
             $lines += "Remaining state objects:"; $lines += ($remaining | ForEach-Object { "- $_" })
         } else { $lines += "All resources destroyed." }

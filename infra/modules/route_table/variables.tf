@@ -22,7 +22,7 @@ variable "subnet_ids" {
 variable "tags" {
   description = "Tags to apply"
   type        = map(string)
-  default     = {
+  default = {
     environment = "dev"
     managed_by  = "terraform"
   }

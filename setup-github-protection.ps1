@@ -172,19 +172,19 @@ $runTest = Read-Host "Would you like to run the test now? (y/n)"
 
 if ($runTest -eq "y") {
     Write-Host "`n🚀 Creating test branch..." -ForegroundColor Cyan
-    
+
     git checkout -b feature/test-branch-protection
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✓ Branch created" -ForegroundColor Green
-        
+
         # Add a comment to README
         Add-Content -Path "README.md" -Value "`n## Branch Protection Test`n"
-        
+
         git add .
         git commit -m "test: verify branch protection and CI/CD pipeline"
         git push origin feature/test-branch-protection
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Host "`n✅ Test branch pushed successfully!" -ForegroundColor Green
             Write-Host ""

@@ -12,8 +12,8 @@ This environment deploys:
 - ✅ Log Analytics & Application Insights monitoring
 - ✅ Remote state management in Azure Storage
 
-**Region:** West Europe  
-**Resource Group:** `rg-kingsila-test`  
+**Region:** West Europe
+**Resource Group:** `rg-kingsila-test`
 **Environment:** Test
 
 ---
@@ -168,5 +168,5 @@ terraform destroy -var-file="terraform.tfvars"
 
 ---
 
-**Last Updated:** November 9, 2025  
+**Last Updated:** November 9, 2025
 **Maintained By:** KingSila

@@ -173,11 +173,11 @@ Access via **Actions → Workflow run → Artifacts**
 
 ## 🛡️ Security Best Practices
 
-✅ Secrets stored in GitHub (never in code)  
-✅ Service principal with least privilege  
-✅ State file in Azure Storage (not in repo)  
-✅ Pull request reviews before apply  
-✅ Branch protection on main recommended  
+✅ Secrets stored in GitHub (never in code)
+✅ Service principal with least privilege
+✅ State file in Azure Storage (not in repo)
+✅ Pull request reviews before apply
+✅ Branch protection on main recommended
 
 ---
 

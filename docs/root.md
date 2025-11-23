@@ -14,4 +14,3 @@ Welcome to this Dendron vault.
 - Use hierarchical naming: `parent.child.grandchild`
 - Create schemas for structure
 - Link notes with [[wikilinks]]
-

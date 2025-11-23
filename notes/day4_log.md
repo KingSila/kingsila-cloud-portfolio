@@ -29,7 +29,7 @@
 ### The Problem
 ```
 Error: Invalid for_each argument
-The "for_each" set includes values derived from resource attributes 
+The "for_each" set includes values derived from resource attributes
 that cannot be determined until apply
 ```
 

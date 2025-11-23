@@ -40,7 +40,7 @@ variable "allowed_rdp_source" {
 variable "tags" {
   description = "Tags to apply to NSG resources"
   type        = map(string)
-  default     = {
+  default = {
     environment = "dev"
     managed_by  = "terraform"
   }

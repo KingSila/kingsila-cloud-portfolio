@@ -31,4 +31,3 @@ output "ci_smoke_test" {
   value       = "hello-from-pr"
   description = "Harmless output to test CI. last  last test for  dag "
 }
-

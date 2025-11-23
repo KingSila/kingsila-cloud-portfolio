@@ -10,8 +10,8 @@ This environment deploys:
 - ✅ Route Tables for subnet associations
 - ✅ Remote state management in Azure Storage
 
-**Region:** West Europe  
-**Resource Group:** `rg-kingsila-dev`  
+**Region:** West Europe
+**Resource Group:** `rg-kingsila-dev`
 **Environment:** Development
 
 ---
@@ -165,5 +165,5 @@ terraform destroy -var-file="terraform.tfvars"
 
 ---
 
-**Last Updated:** November 9, 2025  
+**Last Updated:** November 9, 2025
 **Maintained By:** KingSila

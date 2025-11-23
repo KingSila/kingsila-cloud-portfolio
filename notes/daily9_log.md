@@ -32,7 +32,7 @@
 
 - GitHub Actions YAML indentation caused key Terraform steps (plan + artifact upload) to run **inside** a shell script instead of as distinct steps, which meant:
   - No `tfplan` artifact uploaded
-  - Apply job failing with:  
+  - Apply job failing with:
     `Artifact not found for name: tfplan-dev`
 - Mixed history of Terraform state + manual imports caused confusing messages like:
   - `State has azurerm_resource_group.rg but points to a different RG`
