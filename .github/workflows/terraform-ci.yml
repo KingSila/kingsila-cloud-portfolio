@@ -28,6 +28,7 @@ env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  # TF_VAR_terraform_principal_object_id is set dynamically per job/step below
 
 permissions:
   contents: read
@@ -79,6 +80,16 @@ jobs:
         run: |
           echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.terraform.d/plugin-cache"
+
+      - name: Set TF_VAR_terraform_principal_object_id
+        run: |
+          SECRET_NAME="TERRAFORM_PRINCIPAL_OBJECT_ID_${{ matrix.environment }}"
+          SECRET_NAME_UPPER=$(echo "$SECRET_NAME" | tr '[:lower:]' '[:upper:]')
+          echo "TF_VAR_terraform_principal_object_id=${!SECRET_NAME_UPPER}" >> $GITHUB_ENV
+        env:
+          TERRAFORM_PRINCIPAL_OBJECT_ID_DEV: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_DEV }}
+          TERRAFORM_PRINCIPAL_OBJECT_ID_TEST: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_TEST }}
+          TERRAFORM_PRINCIPAL_OBJECT_ID_PROD: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_PROD }}
 
       - name: Terraform FMT (check)
         id: fmt
