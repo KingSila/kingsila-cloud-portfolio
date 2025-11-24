@@ -44,6 +44,9 @@ jobs:
       matrix:
         environment: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.environment) || '["dev","test"]') }}
 
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
+
     concurrency:
       group: tf-plan-${{ matrix.environment }}-${{ github.ref }}
       cancel-in-progress: false
@@ -77,9 +80,7 @@ jobs:
             tf-plugins-${{ runner.os }}-
 
       - name: Ensure plugin cache dir
-        run: |
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
-          mkdir -p "$HOME/.terraform.d/plugin-cache"
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
       - name: Set TF_VAR_terraform_principal_object_id
         run: |
