@@ -24,6 +24,9 @@ resource "azurerm_key_vault" "this" {
 
   public_network_access_enabled = var.public_network_access_enabled
 
+  rbac_authorization_enabled = true
+
+
   tags = var.tags
 }
 
