@@ -67,16 +67,21 @@ jobs:
             tf-plugins-${{ runner.os }}-
 
       - name: Ensure plugin cache dir
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      # Same SP object-id resolution as main CI
+      - name: Set TF_VAR_terraform_principal_object_id
         run: |
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
-          mkdir -p "$HOME/.terraform.d/plugin-cache"
+          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          echo "Using Terraform SP Object ID: $OBJ_ID"
+          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
 
       - name: Terraform Init (destroy)
         working-directory: infra/environments/${{ github.event.inputs.environment }}
         run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ github.event.inputs.environment }}/terraform.tfstate"
 
       - name: Terraform Validate
-        working-directory: infra/environments/${{ github.event_inputs.environment }}
+        working-directory: infra/environments/${{ github.event.inputs.environment }}
         run: terraform validate -no-color
 
       - name: Terraform Plan -destroy
@@ -119,6 +124,13 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Same dynamic SP object ID for destroy apply
+      - name: Set TF_VAR_terraform_principal_object_id
+        run: |
+          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          echo "Using Terraform SP Object ID: $OBJ_ID"
+          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
