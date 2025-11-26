@@ -28,6 +28,7 @@ env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  enable-AzPSSession: false
   # TF_VAR_terraform_principal_object_id is set dynamically per job/step below
 
 permissions:
@@ -82,15 +83,12 @@ jobs:
       - name: Ensure plugin cache dir
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
+      # Dynamically resolve the Service Principal Object ID for Terraform
       - name: Set TF_VAR_terraform_principal_object_id
         run: |
-          SECRET_NAME="TERRAFORM_PRINCIPAL_OBJECT_ID_${{ matrix.environment }}"
-          SECRET_NAME_UPPER=$(echo "$SECRET_NAME" | tr '[:lower:]' '[:upper:]')
-          echo "TF_VAR_terraform_principal_object_id=${!SECRET_NAME_UPPER}" >> $GITHUB_ENV
-        env:
-          TERRAFORM_PRINCIPAL_OBJECT_ID_DEV: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_DEV }}
-          TERRAFORM_PRINCIPAL_OBJECT_ID_TEST: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_TEST }}
-          TERRAFORM_PRINCIPAL_OBJECT_ID_PROD: ${{ secrets.TERRAFORM_PRINCIPAL_OBJECT_ID_PROD }}
+          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          echo "Using Terraform SP Object ID: $OBJ_ID"
+          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
 
       - name: Terraform FMT (check)
         id: fmt
@@ -251,6 +249,13 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Same dynamic SP object ID for apply
+      - name: Set TF_VAR_terraform_principal_object_id
+        run: |
+          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          echo "Using Terraform SP Object ID: $OBJ_ID"
+          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

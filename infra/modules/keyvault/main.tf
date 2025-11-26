@@ -30,11 +30,11 @@ resource "azurerm_key_vault" "this" {
   tags = var.tags
 }
 
-# Optional: RBAC roles for identities that need vault access
-resource "azurerm_role_assignment" "access" {
-  for_each = var.access_identities
+# # Optional: RBAC roles for identities that need vault access
+# resource "azurerm_role_assignment" "access" {
+#   for_each = var.access_identities
 
-  scope                = azurerm_key_vault.this.id
-  role_definition_name = each.value.role
-  principal_id         = each.value.principal_id
-}
+#   scope                = azurerm_key_vault.this.id
+#   role_definition_name = each.value.role
+#   principal_id         = each.value.principal_id
+# }
