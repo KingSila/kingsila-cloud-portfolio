@@ -3,7 +3,7 @@
   "startDate": "2025-11-07",
   "endDate": "2026-01-30",
   "totalWeeks": 12,
-  "overallProgress": 25,
+  "overallProgress": 30,
   "weeklyProgress": {
     "week1-2": {
       "title": "Azure Core + Terraform Foundations",
@@ -29,22 +29,21 @@
     },
     "week3-4": {
       "title": "RBAC, Environments & CI/CD",
-      "status": "in-progress",
-      "progressPercent": 25,
+      "status": "completed",
+      "progressPercent": 100,
       "tasksCompleted": [
         "Set up directory-based environments for dev and test",
         "Configured separate remote state keys per environment (dev/test)",
         "Implemented GitHub Actions workflow for Terraform plan/apply with matrix environments",
         "Added artifact-based Terraform plan/apply split (tfplan-dev/test)",
-        "Implemented safe RG import automation in CI (only when missing from state)"
+        "Implemented safe RG import automation in CI (only when missing from state)",
+        "Enabled Key Vault RBAC mode and aligned Terraform configuration",
+        "Granted Terraform CI service principal Key Vault Secrets Officer role via RBAC",
+        "Wired Terraform CI to use correct service principal object ID for Key Vault access",
+        "Successfully completed Terraform apply for dev environment from CI with Key Vault secrets"
       ],
-      "tasksRemaining": [
-        "Set up Management Groups & RBAC policies",
-        "Create prod environment",
-        "Implement approval gates for prod deployments",
-        "Add pre-commit hooks and validation"
-      ],
-      "hoursSpent": 3
+      "tasksRemaining": [],
+      "hoursSpent": 7
     },
     "week5-6": {
       "title": "Security, Monitoring & Secrets Management",
@@ -110,27 +109,28 @@
     }
   },
   "dailyLogs": {
-    "date": "2025-11-17",
+    "date": "2025-11-24",
     "week": "week3-4",
-    "hoursSpent": 3,
+    "hoursSpent": 2,
     "tasksCompleted": [
-      "Fixed Terraform CI/CD YAML so plan and artifact upload run as separate steps",
-      "Standardised Terraform plan artifact naming (tfplan-dev/test) and wiring into apply job",
-      "Verified separate remote state keys for dev and test environments",
-      "Implemented safe RG import logic in CI using az + terraform state checks"
+      "Debugged 403 Forbidden errors from Azure Key Vault during Terraform apply in CI",
+      "Confirmed and implemented Key Vault RBAC mode using updated provider attributes",
+      "Configured Terraform module to assign Key Vault Secrets Officer role to the CI service principal",
+      "Verified successful Terraform apply for dev environment including Key Vault secret creation from GitHub Actions"
     ],
     "challenges": [
-      "GitHub Actions YAML indentation caused plan and upload steps not to run as real steps",
-      "Apply job failing because tfplan artifact was never uploaded",
-      "Historical state/import confusion around dev/test RGs made error messages noisy"
+      "Distinguishing between management-plane RBAC roles and data-plane Key Vault permissions",
+      "Navigating deprecated flags (enable_rbac_authorization) versus new flags (rbac_authorization_enabled) in the azurerm provider",
+      "Ensuring the correct service principal object ID (not app registration ID) was used for role assignments in CI",
+      "Interpreting Azure’s 403 error messages to isolate missing data-plane permissions"
     ],
     "learnings": [
-      "GitHub Actions step indentation is critical – - name: must not live inside run: blocks",
-      "Terraform imports belong in one-off fixes, not as repeated actions in CI unless very carefully controlled",
-      "Using stable artifact names and matching download names avoids a whole class of CI failures",
-      "Remote state keys per environment make debugging state issues much easier"
+      "Key Vault data-plane access requires specific secrets roles (e.g. Key Vault Secrets Officer), not just generic RBAC roles like User Access Administrator",
+      "RBAC mode for Key Vault must be explicitly enabled to make role assignments effective for secrets access",
+      "Using the service principal object ID consistently across Terraform and CI avoids subtle RBAC mismatches",
+      "A green Terraform apply from CI is the best confirmation that identity, RBAC, and remote state are correctly wired together"
     ],
-    "notes": "Today focused on stabilising the Terraform CI/CD pipeline with proper plan/apply separation, artifact handling, and safe RG import behaviour. Dev and test environments are now wired cleanly into the workflow, setting up a solid base for further RBAC and environment work."
+    "notes": "Today focused on fixing Key Vault access for Terraform running in GitHub Actions. By enabling RBAC mode on the vault, assigning a data-plane role to the CI service principal, and wiring the correct object ID into Terraform variables, the dev environment apply now completes successfully with secrets managed in Key Vault. This solidifies the RBAC and CI foundation for rolling the same pattern into test and prod."
   },
   "skills": {
     "azure": {
@@ -166,7 +166,7 @@
     "weeklyStreak": 1,
     "modulesCreated": 3,
     "pipelinesBuilt": 1,
-    "issuesResolved": 8,
-    "weekCompleted": 1
+    "issuesResolved": 9,
+    "weekCompleted": 2
   }
 }
