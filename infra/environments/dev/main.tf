@@ -201,6 +201,10 @@ resource "azurerm_linux_web_app" "web" {
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   site_config {
     application_stack {
       dotnet_version = "8.0"
@@ -208,9 +212,16 @@ resource "azurerm_linux_web_app" "web" {
   }
 
   app_settings = {
-    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_secret.id})"
+    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_secret.resource_versionless_id})"
   }
+
 
   # VNet Integration
   virtual_network_subnet_id = azurerm_subnet.appsvc.id
+}
+
+resource "azurerm_role_assignment" "kv_appservice_dev" {
+  scope                = module.keyvault_dev.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
