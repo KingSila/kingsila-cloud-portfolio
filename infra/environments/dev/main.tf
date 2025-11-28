@@ -42,7 +42,7 @@ resource "azurerm_resource_group" "rg" {
 resource "azurerm_role_assignment" "kv_terraform_dev" {
   scope                = module.keyvault_dev.id
   role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = var.terraform_principal_object_id
+  principal_id         = data.azurerm_client_config.current.object_id
 }
 
 
