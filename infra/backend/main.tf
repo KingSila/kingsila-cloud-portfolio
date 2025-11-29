@@ -16,7 +16,7 @@ provider "azurerm" {
 # Resource Group for Terraform State
 resource "azurerm_resource_group" "tfstate" {
   name     = "tfstate-rg"
-  location = "westeurope"
+  location = "South Africa North"
 
   tags = {
     purpose    = "terraform-state"

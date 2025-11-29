@@ -23,7 +23,7 @@ Stopped for the day due to low energy – investigation to continue next session
 - Hit the following error while managing the secret:
   - Resource: `azurerm_key_vault_secret.app_secret`
   - Secret name: `connection-string`
-  - Vault: `kv-kingsila-dev` (westeurope)
+  - Vault: `kv-kingsila-dev` (South Africa North)
   - Error:
     - `StatusCode=403 Code="Forbidden"`
     - `InnerError={"code":"ForbiddenByRbac"}`

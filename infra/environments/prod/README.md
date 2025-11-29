@@ -10,7 +10,7 @@ This environment deploys:
 - ✅ Route Tables for subnet associations
 - ✅ Remote state management in Azure Storage
 
-**Region:** West Europe
+**Region:** South Africa North
 **Resource Group:** `rg-kingsila-prod`
 **Environment:** Production
 
@@ -59,7 +59,7 @@ Ensure the backend storage exists (created via `infra/backend/`):
 Edit `terraform.tfvars` with your settings:
 
 ```hcl
-location            = "westeurope"
+location            = "South Africa North"
 resource_group_name = "rg-kingsila-prod"
 
 tags = {
@@ -130,7 +130,7 @@ terraform output
 - `allowed_rdp_source` - Your public IP for RDP access (CIDR format)
 
 ### Optional Variables (with defaults)
-- `location` - Azure region (default: "westeurope")
+- `location` - Azure region (default: "South Africa North")
 - `resource_group_name` - RG name (default: "rg-kingsila-prod")
 - `tags` - Resource tags
 

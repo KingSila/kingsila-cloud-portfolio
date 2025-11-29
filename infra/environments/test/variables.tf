@@ -2,7 +2,7 @@
 variable "location" {
   description = "Azure region for resources"
   type        = string
-  default     = "westeurope"
+  default     = "South Africa North"
 }
 
 variable "resource_group_name" {
