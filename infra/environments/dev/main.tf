@@ -66,16 +66,7 @@ resource "azurerm_role_assignment" "kv_terraform_dev" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
-resource "azurerm_key_vault_secret" "app_secret" {
-  name         = "connection-string"
-  value        = "placeholder-value" # later replaced by pipeline
-  key_vault_id = module.keyvault_dev.id
 
-  # ✅ Ensure RBAC assignment exists before we touch secrets
-  depends_on = [
-    azurerm_role_assignment.kv_terraform_dev
-  ]
-}
 
 module "vnet" {
   source              = "../../modules/vnet"
@@ -129,7 +120,9 @@ module "route_table" {
 # ---------------------------------------------------------------------
 
 locals {
-  name = lower("${var.prefix}-app")
+  name          = lower("${var.prefix}-app")
+  keyvault_name = lower("kv-main${var.tags.owner}-${var.tags.environment}")
+
 }
 
 # Ensure an app service subnet exists + delegated
@@ -202,8 +195,9 @@ resource "azurerm_linux_web_app" "web" {
   }
 
   app_settings = {
-    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_secret.resource_versionless_id})"
+    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=https://${local.keyvault_name}.vault.azure.net/secrets/connection-string/)"
   }
+
 
   # VNet Integration
   virtual_network_subnet_id = azurerm_subnet.appsvc.id
