@@ -44,7 +44,7 @@ data "azurerm_client_config" "current" {}
 module "keyvault_test" {
   source = "../../modules/keyvault"
 
-  name                = lower("kv-${var.tags.owner}-${var.tags.environment}")
+  name                = lower("kv-main${var.tags.owner}-${var.tags.environment}")
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
