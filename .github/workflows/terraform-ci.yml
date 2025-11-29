@@ -240,6 +240,9 @@ jobs:
       name: ${{ matrix.environment }}
       url: https://portal.azure.com
 
+    env:
+      CONNECTION_STRING: ${{ secrets.DEV_CONNECTION_STRING }}
+
     steps:
       - uses: actions/checkout@v4
 
