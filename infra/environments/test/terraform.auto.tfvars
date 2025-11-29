@@ -1,6 +1,6 @@
 # Common configuration
 prefix              = "kingsila"
-location            = "westeurope"
+location            = "South Africa North"
 resource_group_name = "rg-kingsila-test"
 vnet_name           = "vnet-kingsila-test"
 appsvc_subnet_name  = "snet-appsvc"
