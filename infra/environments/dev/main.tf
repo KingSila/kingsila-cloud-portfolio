@@ -39,13 +39,6 @@ resource "azurerm_resource_group" "rg" {
   tags     = var.tags
 }
 
-resource "azurerm_role_assignment" "kv_terraform_dev" {
-  scope                = module.keyvault_dev.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
-
-
 data "azurerm_client_config" "current" {}
 
 module "keyvault_dev" {
@@ -66,16 +59,23 @@ module "keyvault_dev" {
   # }
 }
 
+# Terraform / current principal access to Key Vault
+resource "azurerm_role_assignment" "kv_terraform_dev" {
+  scope                = module.keyvault_dev.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
 resource "azurerm_key_vault_secret" "app_secret" {
   name         = "connection-string"
   value        = "placeholder-value" # later replaced by pipeline
   key_vault_id = module.keyvault_dev.id
 
+  # ✅ Ensure RBAC assignment exists before we touch secrets
   depends_on = [
-    module.keyvault_dev
+    azurerm_role_assignment.kv_terraform_dev
   ]
 }
-
 
 module "vnet" {
   source              = "../../modules/vnet"
@@ -152,16 +152,6 @@ resource "azurerm_subnet" "appsvc" {
   depends_on = [module.vnet]
 }
 
-# (Optional) Associate existing NSG if you already created one for appsvc subnet
-# data "azurerm_network_security_group" "appsvc_nsg" {
-#   name                = "nsg-appsvc"
-#   resource_group_name = data.azurerm_resource_group.rg.name
-# }
-# resource "azurerm_subnet_network_security_group_association" "appsvc_assoc" {
-#   subnet_id                 = azurerm_subnet.appsvc.id
-#   network_security_group_id = data.azurerm_network_security_group.appsvc_nsg.id
-# }
-
 # Log Analytics
 resource "random_integer" "rand" {
   min = 10000
@@ -215,13 +205,18 @@ resource "azurerm_linux_web_app" "web" {
     "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_secret.resource_versionless_id})"
   }
 
-
   # VNet Integration
   virtual_network_subnet_id = azurerm_subnet.appsvc.id
 }
 
+# App Service identity -> Key Vault access
 resource "azurerm_role_assignment" "kv_appservice_dev" {
   scope                = module.keyvault_dev.id
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = data.azurerm_client_config.current.object_id
+  principal_id         = azurerm_linux_web_app.web.identity[0].principal_id
+
+  depends_on = [
+    azurerm_linux_web_app.web,
+    module.keyvault_dev
+  ]
 }

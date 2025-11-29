@@ -93,7 +93,7 @@ Terraform will perform the following actions:
   # module.nsg_app.azurerm_network_security_group.this will be created
   + resource "azurerm_network_security_group" "this" {
       + id                  = (known after apply)
-      + location            = "westeurope"
+      + location            = "South Africa North"
       + name                = "nsg-app-dev"
       + resource_group_name = "rg-kingsila-dev"
       + security_rule       = (known after apply)
@@ -164,7 +164,7 @@ Terraform will perform the following actions:
   + resource "azurerm_route_table" "this" {
       + bgp_route_propagation_enabled = true
       + id                            = (known after apply)
-      + location                      = "westeurope"
+      + location                      = "South Africa North"
       + name                          = "dev-route-table"
       + resource_group_name           = "rg-kingsila-dev"
       + route                         = (known after apply)
