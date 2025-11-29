@@ -278,3 +278,30 @@ jobs:
       - name: Terraform Apply
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform apply -auto-approve tfplan
+
+      - name: Set Key Vault secret for connection string
+        run: |
+          set -euo pipefail
+          ENV="${{ matrix.environment }}"
+
+          if [ "$ENV" = "dev" ]; then
+            VAULT_NAME="kv-mainkingsila-dev"
+            CONNECTION_STRING="${{ secrets.DEV_DB_CONNECTION_STRING }}"
+          elif [ "$ENV" = "test" ]; then
+            VAULT_NAME="kv-mainkingsila-test"
+            CONNECTION_STRING="${{ secrets.TEST_DB_CONNECTION_STRING }}"
+          else
+            echo "Unsupported environment: $ENV"
+            exit 1
+          fi
+
+          if [ -z "$CONNECTION_STRING" ]; then
+            echo "Connection string secret for $ENV is not set in GitHub Secrets."
+            exit 1
+          fi
+
+          echo "Setting Key Vault secret 'connection-string' in $VAULT_NAME for $ENV..."
+          az keyvault secret set \
+            --vault-name "$VAULT_NAME" \
+            --name "connection-string" \
+            --value "$CONNECTION_STRING"
