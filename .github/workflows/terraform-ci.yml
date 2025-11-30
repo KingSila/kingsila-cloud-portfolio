@@ -19,41 +19,40 @@ on:
         type: choice
         options: [ dev, test, prod ]
 
+permissions:
+  id-token: write        # required for OIDC
+  contents: read
+
 env:
-  TERRAFORM_VERSION: '1.9.8'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+
   ARM_USE_OIDC: true
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  enable-AzPSSession: false
-  # TF_VAR_terraform_principal_object_id is set dynamically per job/step below
-
-permissions:
-  contents: read
-  pull-requests: write
-  id-token: write
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan (${{ matrix.environment }})
+  terraform:
+    name: Terraform ${{ inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.environment) || '["dev","test"]') }}
+
+    defaults:
+      run:
+        working-directory: infra
 
     env:
-      ENVIRONMENT: ${{ matrix.environment }}
-
-    concurrency:
-      group: tf-plan-${{ matrix.environment }}-${{ github.ref }}
-      cancel-in-progress: false
+      ENVIRONMENT: ${{ inputs.environment || 'dev' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -61,249 +60,76 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: false
 
-      - name: Verify Azure + Terraform env
+      - name: Terraform Init (remote backend per env)
         run: |
-          az account show
-          env | grep -E '^ARM_'
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Cache Terraform plugins
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
-          key: tf-plugins-${{ runner.os }}-${{ env.TERRAFORM_VERSION }}
-          restore-keys: |
-            tf-plugins-${{ runner.os }}-
-
-      - name: Ensure plugin cache dir
-        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
-
-      # Dynamically resolve the Service Principal Object ID for Terraform
-      - name: Set TF_VAR_terraform_principal_object_id
-        run: |
-          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
-          echo "Using Terraform SP Object ID: $OBJ_ID"
-          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
-
-      - name: Terraform FMT (check)
-        id: fmt
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Init
-        id: init
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
-
-      - name: Terraform Validate
-        id: validate
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform validate -no-color
-
-      - name: Import existing resource group if needed
-        if: github.event_name != 'pull_request'   # don't mutate state on PRs
-        working-directory: infra/environments/${{ matrix.environment }}
-        env:
-          RESOURCE_GROUP: rg-kingsila-${{ matrix.environment }}
-          SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # 0) Skip if RG doesn't exist in Azure
-          if ! az group show --name "$RESOURCE_GROUP" --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
-            echo "Azure RG $RESOURCE_GROUP not found; skipping import."
-            exit 0
-          fi
-
-          # 1) Decide Terraform address from config
-          ADDRESS=""
-          if grep -Rqs 'resource "azurerm_resource_group" "rg"' .; then
-            ADDRESS="azurerm_resource_group.rg"
-          elif grep -Rqs 'resource "azurerm_resource_group" "rg"' ../../modules/vnet 2>/dev/null; then
-            ADDRESS="module.vnet.azurerm_resource_group.rg"
-          else
-            echo "No azurerm_resource_group.rg in config; nothing to import."
-            exit 0
-          fi
-
-          EXPECTED_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}"
-
-          # 2) If state already has the RG at that address, trust it and move on
-          if terraform state show "${ADDRESS}" >/dev/null 2>&1; then
-            echo "RG already tracked at ${ADDRESS}; skipping import."
-            exit 0
-          fi
-
-          # 3) Not in state → import it
-          echo "Importing ${RESOURCE_GROUP} into ${ADDRESS}..."
-          terraform import "${ADDRESS}" "${EXPECTED_ID}"
+          terraform init \
+            -upgrade \
+            -lock-timeout=2m \
+            -input=false \
+            -backend-config="resource_group_name=tfstate-rg" \
+            -backend-config="storage_account_name=tfstatekingsila" \
+            -backend-config="container_name=state" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate"
 
       - name: Terraform Plan
-        id: plan
-        working-directory: infra/environments/${{ matrix.environment }}
         run: |
-          terraform plan -no-color -out=tfplan -parallelism=10
-          terraform show -no-color tfplan > plan.txt
-          terraform show -json tfplan > plan.json
+          terraform plan \
+            -var-file="env/${ENVIRONMENT}.tfvars" \
+            -out="tfplan-${ENVIRONMENT}"
 
-      - name: Upload Plan Artifacts
+      # Optional: upload plan as artifact on PRs
+      - name: Upload Plan Artifact
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan-${{ matrix.environment }}
-          path: |
-            infra/environments/${{ matrix.environment }}/tfplan
-            infra/environments/${{ matrix.environment }}/plan.txt
-            infra/environments/${{ matrix.environment }}/plan.json
-          retention-days: 5
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: infra/tfplan-${{ env.ENVIRONMENT }}
 
-      - name: Comment PR with Plan Summary
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const envName = process.env.ENVIRONMENT || '${{ matrix.environment }}';
-            const path = `infra/environments/${envName}/plan.txt`;
-            const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : 'No plan output.';
-            const slice = body.length > 50000 ? body.slice(0, 50000) + '\n\n…(truncated)…' : body;
-
-            const fmt = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '❌';
-            const init = '${{ steps.init.outcome }}' === 'success' ? '✅' : '❌';
-            const validate = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
-            const plan = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
-
-            const table = `
-            | Step | Status |
-            |------|--------|
-            | Format | ${fmt} |
-            | Initialize | ${init} |
-            | Validate | ${validate} |
-            | Plan | ${plan} |
-            `;
-
-            const comment = `### Terraform Plan — \`${envName}\`
-            ${table}
-
-            <details><summary>📋 Plan Output</summary>
-
-            \`\`\`terraform
-            ${slice}
-            \`\`\`
-
-            </details>`;
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const marker = `Terraform Plan — \`${envName}\``;
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
-              });
-            }
-
-  terraform-apply:
-    name: Terraform Apply (${{ matrix.environment }})
-    runs-on: ubuntu-latest
-    needs: terraform-plan
-    if: always()
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [ dev, test ]
-
-    concurrency:
-      group: tf-apply-${{ matrix.environment }}
-      cancel-in-progress: false
-
-    environment:
-      name: ${{ matrix.environment }}
-      url: https://portal.azure.com
-
-
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      # Same dynamic SP object ID for apply
-      - name: Set TF_VAR_terraform_principal_object_id
-        run: |
-          OBJ_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
-          echo "Using Terraform SP Object ID: $OBJ_ID"
-          echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Ensure plugin cache dir
-        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-${{ matrix.environment }}
-          path: infra/environments/${{ matrix.environment }}
-
-      - name: Terraform Init (for backend state)
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
-
+      # Only apply on push to main or manual dispatch
       - name: Terraform Apply
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform apply -auto-approve tfplan
-
-      - name: Set Key Vault secret for connection string
+        if: github.event_name != 'pull_request'
         run: |
-          set -euo pipefail
-          ENV="${{ matrix.environment }}"
+          terraform apply -auto-approve "tfplan-${ENVIRONMENT}"
 
-          if [ "$ENV" = "dev" ]; then
-            VAULT_NAME="kv-mainkingsila-dev"
-            CONNECTION_STRING="${{ secrets.DEV_DB_CONNECTION_STRING }}"
-          elif [ "$ENV" = "test" ]; then
-            VAULT_NAME="kv-mainkingsila-test"
-            CONNECTION_STRING="${{ secrets.TEST_DB_CONNECTION_STRING }}"
-          else
-            echo "Unsupported environment: $ENV"
+      # Set Key Vault secret after apply (per environment)
+      - name: Set Key Vault connection-string secret
+        if: github.event_name != 'pull_request'
+        run: |
+          case "${ENVIRONMENT}" in
+            dev)
+              KV_NAME="kv-mainkingsila-dev"
+              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_DEV }}"
+              ;;
+            test)
+              KV_NAME="kv-mainkingsila-test"
+              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_TEST }}"
+              ;;
+            prod)
+              KV_NAME="kv-mainkingsila-prod"
+              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_PROD }}"
+              ;;
+            *)
+              echo "Unknown environment: ${ENVIRONMENT}"
+              exit 1
+              ;;
+          esac
+
+          if [ -z "$DB_SECRET" ]; then
+            echo "Database connection string secret is not set for ${ENVIRONMENT}"
             exit 1
           fi
 
-          if [ -z "$CONNECTION_STRING" ]; then
-            echo "Connection string secret for $ENV is not set in GitHub Secrets."
-            exit 1
-          fi
-
-          echo "Setting Key Vault secret 'connection-string' in $VAULT_NAME for $ENV..."
+          echo "Setting Key Vault secret 'connection-string' in $KV_NAME for ${ENVIRONMENT}..."
           az keyvault secret set \
-            --vault-name "$VAULT_NAME" \
+            --vault-name "$KV_NAME" \
             --name "connection-string" \
-            --value "$CONNECTION_STRING"
+            --value "$DB_SECRET"
+
+      # Optional: output URLs/info to logs
+      - name: Show useful outputs
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Fetching Terraform outputs..."
+          terraform output -json
