@@ -111,7 +111,8 @@ module "route_table" {
 # ---------------------------------------------------------------------
 
 locals {
-  name = lower("${var.prefix}-app")
+  name          = lower("${var.prefix}-app")
+  keyvault_name = lower("kv-main${var.tags.owner}-${var.tags.environment}")
 }
 
 # Ensure an app service subnet exists + delegated
@@ -183,10 +184,18 @@ resource "azurerm_linux_web_app" "web" {
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   site_config {
     application_stack {
       dotnet_version = "8.0"
     }
+  }
+
+  app_settings = {
+    "ConnectionStrings__Db" = "@Microsoft.KeyVault(SecretUri=https://${local.keyvault_name}.vault.azure.net/secrets/connection-string/)"
   }
 
   # VNet Integration
