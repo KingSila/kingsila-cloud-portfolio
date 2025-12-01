@@ -7,5 +7,5 @@ app_sku   = "B1"
 tags = {
   environment = "prod"
   owner       = "kingsila"
-
 }
+allowed_locations = ["southafricanorth", "southafricawest"]
