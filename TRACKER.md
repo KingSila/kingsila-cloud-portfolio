@@ -34,7 +34,7 @@
 
 ## Weeks 5–6: Security, Compliance & Platform Guardrails
 
-- [~] Finalise Azure Policy as Code (allowed locations/SKU/naming)
+- [x] Finalise Azure Policy as Code (allowed locations/SKU/naming)
 - [ ] Create policy-assignment Terraform module
 - [ ] Enable Defender for Cloud baseline
 - [ ] Centralise Key Vault + workload identities (OIDC / MI)

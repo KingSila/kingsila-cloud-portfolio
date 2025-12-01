@@ -1,6 +1,10 @@
 #############################
 # Core environment variables
 #############################
+variable "allowed_locations" {
+  description = "List of allowed Azure locations for this environment."
+  type        = list(string)
+}
 
 # Generic tags used across all resources
 # Must include at least:

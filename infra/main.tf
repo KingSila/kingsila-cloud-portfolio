@@ -1,3 +1,26 @@
+data "azurerm_subscription" "current" {}
+
+data "azurerm_policy_definition" "allowed_locations" {
+  display_name = "Allowed locations"
+}
+
+module "policy_allowed_locations" {
+  source = "./modules/policy_assignment"
+
+  name                 = "allowed-locations-${var.tags.environment}"
+  subscription_id      = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  scope                = data.azurerm_subscription.current.id
+  policy_definition_id = data.azurerm_policy_definition.allowed_locations.id
+
+  display_name = "Allowed locations (${var.tags.environment})"
+  description  = "Restrict locations for ${var.tags.environment} environment."
+
+  parameters = {
+    listOfAllowedLocations = {
+      value = var.allowed_locations
+    }
+  }
+}
 
 # ---------------------------------------------------------
 # Azure identity running terraform (OIDC or local)
