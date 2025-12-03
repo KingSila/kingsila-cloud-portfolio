@@ -1,6 +1,11 @@
 #############################
 # Core environment variables
 #############################
+variable "environment" {
+  type        = string
+  description = "Environment short name (dev/test/prod)"
+}
+
 variable "allowed_locations" {
   description = "List of allowed Azure locations for this environment."
   type        = list(string)
