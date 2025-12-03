@@ -1,31 +1,40 @@
-data "azurerm_subscription" "current" {}
+# ---------------------------------------------------------
+# Azure identity running terraform (OIDC or local)
+# ---------------------------------------------------------
+data "azurerm_client_config" "current" {}
 
+# ---------------------------------------------------------
+# Subscription + Built-in Policy Definition (Allowed locations)
+# ---------------------------------------------------------
+data "azurerm_subscription" "current" {
+  # Explicit, though optional – makes intent clear
+  subscription_id = data.azurerm_client_config.current.subscription_id
+}
+
+# Built-in "Allowed locations" policy definition
+# ID: /providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c
 data "azurerm_policy_definition" "allowed_locations" {
-  display_name = "Allowed locations"
+  name = "e56962a6-4747-49cd-b67b-bf8b01975c4c"
 }
 
 module "policy_allowed_locations" {
   source = "./modules/policy_assignment"
 
   name                 = "allowed-locations-${var.tags.environment}"
-  subscription_id      = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-  scope                = data.azurerm_subscription.current.id
+  subscription_id      = data.azurerm_client_config.current.subscription_id
   policy_definition_id = data.azurerm_policy_definition.allowed_locations.id
+  enforce              = true
 
   display_name = "Allowed locations (${var.tags.environment})"
   description  = "Restrict locations for ${var.tags.environment} environment."
 
+  # parameters is a simple JSON string argument in azurerm 4.x, passed via module
   parameters = {
     listOfAllowedLocations = {
       value = var.allowed_locations
     }
   }
 }
-
-# ---------------------------------------------------------
-# Azure identity running terraform (OIDC or local)
-# ---------------------------------------------------------
-data "azurerm_client_config" "current" {}
 
 # ---------------------------------------------------------
 # Resource Group
@@ -127,18 +136,17 @@ resource "azurerm_linux_web_app" "app" {
   tags = var.tags
 }
 
-
 # ---------------------------------------------------------
-# Outputs for debugging (optional)
+# Outputs (optional)
 # ---------------------------------------------------------
 # output "resource_group" {
 #   value = azurerm_resource_group.rg.name
 # }
-
+#
 # output "keyvault_uri" {
 #   value = module.keyvault.vault_uri
 # }
-
+#
 # output "web_app_url" {
 #   value = azurerm_linux_web_app.app.default_hostname
 # }
