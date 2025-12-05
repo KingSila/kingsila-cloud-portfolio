@@ -1,16 +1,14 @@
 name: Terraform CI/CD
 
 on:
+  # Validate + plan on PRs (dev only by default)
   pull_request:
     branches: [ main ]
     paths:
       - 'infra/**'
       - '.github/workflows/terraform-ci.yml'
-  push:
-    branches: [ main ]
-    paths:
-      - 'infra/**'
-      - '.github/workflows/terraform-ci.yml'
+
+  # Optional: run apply manually per-environment
   workflow_dispatch:
     inputs:
       environment:
@@ -18,12 +16,18 @@ on:
         required: true
         type: choice
         options: [ dev, test, prod ]
+      action:
+        description: 'What to do'
+        required: true
+        type: choice
+        options: [ plan, apply ]
 
 permissions:
-  id-token: write        # required for OIDC
-  contents: read
+    id-token: write      # needed for OIDC
+    contents: read
 
 env:
+  TERRAFORM_VERSION: '1.9.8'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
@@ -34,16 +38,21 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
-  terraform:
-    name: Terraform ${{ inputs.environment || 'dev' }}
+  # ------------------------
+  # PR: format + validate + plan (DEV only)
+  # ------------------------
+  pr-dev-plan:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-
     defaults:
       run:
-        working-directory: infra
+        shell: bash
 
     env:
-      ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+      ENVIRONMENT: dev
+      TF_WORKING_DIR: infra/envs/dev
+      TF_VARS_FILE: infra/env/dev.tfvars
+      BACKEND_CONFIG_FILE: infra/backend-dev.hcl
 
     steps:
       - name: Checkout
@@ -52,84 +61,96 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Azure Login (OIDC)
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: false
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
 
-      - name: Terraform Init (remote backend per env)
+      - name: Terraform Init (dev)
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform init \
-            -upgrade \
-            -lock-timeout=2m \
-            -input=false \
-            -backend-config="resource_group_name=tfstate-rg" \
-            -backend-config="storage_account_name=tfstatekingsila" \
-            -backend-config="container_name=state" \
-            -backend-config="key=${ENVIRONMENT}/terraform.tfstate"
+            -backend-config="../../${{ env.BACKEND_CONFIG_FILE }}" \
+            -reconfigure
 
-      - name: Terraform Plan
+      - name: Terraform Fmt
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -diff
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan (dev)
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform plan \
-            -var-file="env/${ENVIRONMENT}.tfvars" \
-            -out="tfplan-${ENVIRONMENT}"
+            -var-file="../../${{ env.TF_VARS_FILE }}" \
+            -out="tfplan-dev.bin"
 
-      # Optional: upload plan as artifact on PRs
-      - name: Upload Plan Artifact
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+  # ------------------------
+  # Manual: per-env plan/apply via workflow_dispatch
+  # ------------------------
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ENVIRONMENT: ${{ github.event.inputs.environment }}
+      TF_WORKING_DIR: infra/envs/${{ github.event.inputs.environment }}
+      TF_VARS_FILE: infra/env/${{ github.event.inputs.environment }}.tfvars
+      BACKEND_CONFIG_FILE: infra/backend-${{ github.event.inputs.environment }}.hcl
+      ACTION: ${{ github.event.inputs.action }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          name: tfplan-${{ env.ENVIRONMENT }}
-          path: infra/tfplan-${{ env.ENVIRONMENT }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # Only apply on push to main or manual dispatch
-      - name: Terraform Apply
-        if: github.event_name != 'pull_request'
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init (${{ env.ENVIRONMENT }})
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform apply -auto-approve "tfplan-${ENVIRONMENT}"
+          terraform init \
+            -backend-config="../../${{ env.BACKEND_CONFIG_FILE }}" \
+            -reconfigure
 
-      # Set Key Vault secret after apply (per environment)
-      - name: Set Key Vault connection-string secret
-        if: github.event_name != 'pull_request'
+      - name: Terraform Fmt
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -diff
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan (${{ env.ENVIRONMENT }})
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          case "${ENVIRONMENT}" in
-            dev)
-              KV_NAME="kv-mainkingsila-dev"
-              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_DEV }}"
-              ;;
-            test)
-              KV_NAME="kv-mainkingsila-test"
-              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_TEST }}"
-              ;;
-            prod)
-              KV_NAME="kv-mainkingsila-prod"
-              DB_SECRET="${{ secrets.DB_CONNECTION_STRING_PROD }}"
-              ;;
-            *)
-              echo "Unknown environment: ${ENVIRONMENT}"
-              exit 1
-              ;;
-          esac
+          terraform plan \
+            -var-file="../../${{ env.TF_VARS_FILE }}" \
+            -out="tfplan-${{ env.ENVIRONMENT }}.bin"
 
-          if [ -z "$DB_SECRET" ]; then
-            echo "Database connection string secret is not set for ${ENVIRONMENT}"
-            exit 1
-          fi
-
-          echo "Setting Key Vault secret 'connection-string' in $KV_NAME for ${ENVIRONMENT}..."
-          az keyvault secret set \
-            --vault-name "$KV_NAME" \
-            --name "connection-string" \
-            --value "$DB_SECRET"
-
-      # Optional: output URLs/info to logs
-      - name: Show useful outputs
-        if: github.event_name != 'pull_request'
+      - name: Terraform Apply (${{ env.ENVIRONMENT }})
+        if: env.ACTION == 'apply'
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          echo "Fetching Terraform outputs..."
-          terraform output -json
+          terraform apply \
+            -auto-approve \
+            "tfplan-${{ env.ENVIRONMENT }}.bin"
