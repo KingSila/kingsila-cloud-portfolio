@@ -89,7 +89,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform plan \
-            -var-file="../../${{ env.TF_VARS_FILE }}" \
+            -var-file="${{ env.TF_VARS_FILE }}" \
             -out="tfplan-dev.bin"
 
   # ------------------------
@@ -129,7 +129,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform init \
-            -backend-config="../../${{ env.BACKEND_CONFIG_FILE }}" \
+            -backend-config="${{ env.BACKEND_CONFIG_FILE }}" \
             -reconfigure
 
       - name: Terraform Fmt
@@ -144,7 +144,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform plan \
-            -var-file="../../${{ env.TF_VARS_FILE }}" \
+            -var-file="${{ env.TF_VARS_FILE }}" \
             -out="tfplan-${{ env.ENVIRONMENT }}.bin"
 
       - name: Terraform Apply (${{ env.ENVIRONMENT }})
