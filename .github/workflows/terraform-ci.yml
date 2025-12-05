@@ -51,7 +51,7 @@ jobs:
     env:
       ENVIRONMENT: dev
       TF_WORKING_DIR: infra/envs/dev
-      TF_VARS_FILE: infra/envs/dev/dev.tfvars
+      TF_VARS_FILE: dev.tfvars
       BACKEND_CONFIG_FILE: backend-dev.hcl
 
     steps:
