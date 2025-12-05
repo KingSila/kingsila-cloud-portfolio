@@ -105,7 +105,7 @@ jobs:
     env:
       ENVIRONMENT: ${{ github.event.inputs.environment }}
       TF_WORKING_DIR: infra/envs/${{ github.event.inputs.environment }}
-      TF_VARS_FILE: infra/envs/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfvars
+      TF_VARS_FILE: ${{ github.event.inputs.environment }}.tfvars
       BACKEND_CONFIG_FILE: infra/envs/${{ github.event.inputs.environment }}/backend-${{ github.event.inputs.environment }}.hcl
       ACTION: ${{ github.event.inputs.action }}
 
