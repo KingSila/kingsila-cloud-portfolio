@@ -1,3 +1,49 @@
+# KingSila Cloud Portfolio – Azure | Terraform | DevOps
+
+Welcome 👋
+This repository documents my journey from experienced engineer to
+**Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting fully remote roles in the **US** and **Europe**.
+
+---
+
+## 🚀 Purpose
+
+- Build **production-grade Azure infrastructure** using modern DevOps patterns.
+- Create **reusable, enterprise-ready Terraform modules**.
+- Implement **secure CI/CD automation** with GitHub Actions.
+- Showcase real-world cloud architecture, security, and observability skills.
+- Track continuous learning and hands-on progress.
+
+---
+
+## 📆 Timeline
+
+**November 2025 → January 2026**
+12-week structured roadmap focused on:
+
+1. Azure core infrastructure & governance
+2. Terraform advanced modules
+3. CI/CD and automation
+4. Security, monitoring, and cost optimisation
+5. Containers & AKS
+6. Final portfolio build + interview preparation
+
+See [`TRACKER.md`](./TRACKER.md) for weekly milestones.
+
+---
+
+## 🧱 Project Structure
+
+infra/ → Terraform root, modules, and envs
+├── modules/ → Reusable infrastructure modules
+├── envs/ → Environment configs (dev/test/prod)
+└── backend/ → Remote state configuration
+.github/
+└── workflows/ → CI/CD pipelines for plan/apply/destroy
+docs/ → Architecture, security & CI/CD docs
+notes/ → Daily logs & learning notes
+pipelines/ → Additional scripts & tooling
+
 
 ---
 
