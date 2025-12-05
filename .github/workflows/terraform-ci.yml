@@ -52,7 +52,7 @@ jobs:
       ENVIRONMENT: dev
       TF_WORKING_DIR: infra/envs/dev
       TF_VARS_FILE: infra/env/dev.tfvars
-      BACKEND_CONFIG_FILE: infra/envs/dev/backend-dev.hcl
+      BACKEND_CONFIG_FILE: backend-dev.hcl
 
     steps:
       - name: Checkout
@@ -74,7 +74,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           terraform init \
-            -backend-config="../../${{ env.BACKEND_CONFIG_FILE }}" \
+            -backend-config="${{ env.BACKEND_CONFIG_FILE }}" \
             -reconfigure
 
       - name: Terraform Fmt
