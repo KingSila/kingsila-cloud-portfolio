@@ -77,16 +77,16 @@ jobs:
           echo "TF_VAR_terraform_principal_object_id=$OBJ_ID" >> $GITHUB_ENV
 
       - name: Terraform Init (destroy)
-        working-directory: infra/environments/${{ github.event.inputs.environment }}
+        working-directory: infra/envs/${{ github.event.inputs.environment }}
         run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ github.event.inputs.environment }}/terraform.tfstate"
 
       - name: Terraform Validate
-        working-directory: infra/environments/${{ github.event.inputs.environment }}
+        working-directory: infra/envs/${{ github.event.inputs.environment }}
         run: terraform validate -no-color
 
       - name: Terraform Plan -destroy
         id: plan_destroy
-        working-directory: infra/environments/${{ github.event.inputs.environment }}
+        working-directory: infra/envs/${{ github.event.inputs.environment }}
         run: |
           terraform plan -destroy -no-color -out=tfplan.destroy -parallelism=10
           terraform show -no-color tfplan.destroy > plan-destroy.txt
@@ -96,8 +96,8 @@ jobs:
         with:
           name: tfplan-destroy-${{ github.event.inputs.environment }}
           path: |
-            infra/environments/${{ github.event.inputs.environment }}/tfplan.destroy
-            infra/environments/${{ github.event.inputs.environment }}/plan-destroy.txt
+            infra/envs/${{ github.event.inputs.environment }}/tfplan.destroy
+            infra/envs/${{ github.event.inputs.environment }}/plan-destroy.txt
           retention-days: 3
 
   apply-destroy:
@@ -144,12 +144,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan-destroy-${{ github.event.inputs.environment }}
-          path: infra/environments/${{ github.event.inputs.environment }}
+          path: infra/envs/${{ github.event.inputs.environment }}
 
       - name: Terraform Init (for backend state)
-        working-directory: infra/environments/${{ github.event.inputs.environment }}
+        working-directory: infra/envs/${{ github.event.inputs.environment }}
         run: terraform init -upgrade -lock-timeout=2m -input=false -backend-config="key=${{ github.event.inputs.environment }}/terraform.tfstate"
 
       - name: Terraform Apply Destroy Plan
-        working-directory: infra/environments/${{ github.event.inputs.environment }}
+        working-directory: infra/envs/${{ github.event.inputs.environment }}
         run: terraform apply -auto-approve tfplan.destroy
