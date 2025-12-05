@@ -22,6 +22,10 @@ on:
         type: choice
         options: [ plan, apply ]
 
+permissions:
+    id-token: write      # needed for OIDC
+    contents: read
+
 env:
   TERRAFORM_VERSION: '1.9.8'
   TF_IN_AUTOMATION: 'true'
