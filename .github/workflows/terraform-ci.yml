@@ -177,7 +177,7 @@ jobs:
           fi
 
           # Get Key Vault name from Terraform output
-          KV_NAME=$(terraform output -raw key_vault_name)
+          KV_NAME=$(terraform output -raw keyvault_name)
 
           echo "Setting 'connection-string' secret in Key Vault: $KV_NAME"
 
@@ -269,7 +269,7 @@ jobs:
           fi
 
           # Get Key Vault name from Terraform output
-          KV_NAME=$(terraform output -raw key_vault_name)
+          KV_NAME=$(terraform output -raw keyvault_name)
 
           echo "Setting 'connection-string' secret in Key Vault: $KV_NAME"
 
