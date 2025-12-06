@@ -10,28 +10,28 @@ variable "display_name" {
 
 variable "description" {
   type        = string
+  default     = ""
   description = "Description for the policy assignment"
-  default     = null
 }
 
 variable "subscription_id" {
   type        = string
-  description = "Subscription ID to assign the policy to"
+  description = "Subscription ID (without /subscriptions/ prefix)"
 }
 
 variable "policy_definition_id" {
   type        = string
-  description = "ID of the policy or initiative definition"
-}
-
-variable "parameters" {
-  type        = any
-  description = "JSON encoded parameters block for the policy assignment"
-  default     = null
+  description = "ID of the policy definition to assign"
 }
 
 variable "enforce" {
   type        = bool
-  description = "Whether to enforce the policy assignment (true) or audit only (false)"
   default     = true
+  description = "Whether to enforce the policy (true) or audit-only (false)"
+}
+
+variable "parameters" {
+  type        = any
+  default     = null
+  description = "Policy parameters as a map/object, will be JSON encoded"
 }
