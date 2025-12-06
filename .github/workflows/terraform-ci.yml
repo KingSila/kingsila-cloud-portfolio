@@ -1,14 +1,18 @@
 name: Terraform CI/CD
 
 on:
-  # Validate + plan on PRs (dev only by default)
   pull_request:
     branches: [ main ]
     paths:
       - 'infra/**'
       - '.github/workflows/terraform-ci.yml'
 
-  # Optional: run apply manually per-environment
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform-ci.yml'
+
   workflow_dispatch:
     inputs:
       environment:
@@ -16,98 +20,42 @@ on:
         required: true
         type: choice
         options: [ dev, test, prod ]
-      action:
-        description: 'What to do'
-        required: true
-        type: choice
-        options: [ plan, apply ]
-
-permissions:
-    id-token: write      # needed for OIDC
-    contents: read
 
 env:
   TERRAFORM_VERSION: '1.9.8'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
-
   ARM_USE_OIDC: true
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  enable-AzPSSession: false
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  # ------------------------
-  # PR: format + validate + plan (DEV only)
-  # ------------------------
-  pr-dev-plan:
-    if: github.event_name == 'pull_request'
+  # ─────────────────────────────────────────────
+  # PR: Plan only for all environments
+  # ─────────────────────────────────────────────
+  plan-on-pr:
+    name: Terraform Plan (PR) – ${{ matrix.environment }}
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [ dev, test, prod ]
+
     defaults:
       run:
         shell: bash
 
     env:
-      ENVIRONMENT: dev
-      TF_WORKING_DIR: infra/envs/dev
-      TF_VARS_FILE: dev.tfvars
-      BACKEND_CONFIG_FILE: backend-dev.hcl
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ env.ARM_CLIENT_ID }}
-          tenant-id: ${{ env.ARM_TENANT_ID }}
-          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
-
-      - name: Terraform Init (dev)
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init \
-            -backend-config="${{ env.BACKEND_CONFIG_FILE }}" \
-            -reconfigure
-
-      - name: Terraform Fmt
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform fmt -check -diff
-
-      - name: Terraform Validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform validate
-
-      - name: Terraform Plan (dev)
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform plan \
-            -var-file="${{ env.TF_VARS_FILE }}" \
-            -out="tfplan-dev.bin"
-
-  # ------------------------
-  # Manual: per-env plan/apply via workflow_dispatch
-  # ------------------------
-  deploy:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    env:
-      ENVIRONMENT: ${{ github.event.inputs.environment }}
-      TF_WORKING_DIR: infra/envs/${{ github.event.inputs.environment }}
-      TF_VARS_FILE: ${{ github.event.inputs.environment }}.tfvars
-      BACKEND_CONFIG_FILE: backend-${{ github.event.inputs.environment }}.hcl
-      ACTION: ${{ github.event.inputs.action }}
+      ENVIRONMENT: ${{ matrix.environment }}
 
     steps:
       - name: Checkout
@@ -126,31 +74,137 @@ jobs:
           subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
 
       - name: Terraform Init (${{ env.ENVIRONMENT }})
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
         run: |
           terraform init \
-            -backend-config="${{ env.BACKEND_CONFIG_FILE }}" \
-            -reconfigure
+            -input=false
 
-      - name: Terraform Fmt
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform fmt -check -diff
-
-      - name: Terraform Validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
+      - name: Terraform Validate (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
         run: terraform validate
 
       - name: Terraform Plan (${{ env.ENVIRONMENT }})
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
         run: |
           terraform plan \
-            -var-file="${{ env.TF_VARS_FILE }}" \
-            -out="tfplan-${{ env.ENVIRONMENT }}.bin"
+            -no-color \
+            -var-file=${{ env.ENVIRONMENT }}.tfvars
+
+  # ─────────────────────────────────────────────
+  # Push to main: Plan + Apply for all envs
+  # ─────────────────────────────────────────────
+  plan-apply-on-main:
+    name: Terraform Plan & Apply (main) – ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [ dev, test, prod ]
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: |
+          terraform init \
+            -input=false
+
+      - name: Terraform Validate (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: terraform validate
+
+      - name: Terraform Plan (${{ env.ENVIRONMENT }})
+        id: plan
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: |
+          terraform plan \
+            -no-color \
+            -out=tfplan.${{ env.ENVIRONMENT }} \
+            -var-file=${{ env.ENVIRONMENT }}.tfvars
 
       - name: Terraform Apply (${{ env.ENVIRONMENT }})
-        if: env.ACTION == 'apply'
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
         run: |
           terraform apply \
-            -auto-approve \
-            "tfplan-${{ env.ENVIRONMENT }}.bin"
+            -input=false \
+            tfplan.${{ env.ENVIRONMENT }}
+
+  # ─────────────────────────────────────────────
+  # Manual run: Plan + Apply for a single env
+  # ─────────────────────────────────────────────
+  plan-apply-manual:
+    name: Terraform Plan & Apply (manual) – ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ENVIRONMENT: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: |
+          terraform init \
+            -input=false
+
+      - name: Terraform Validate (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: terraform validate
+
+      - name: Terraform Plan (${{ env.ENVIRONMENT }})
+        id: plan
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: |
+          terraform plan \
+            -no-color \
+            -out=tfplan.${{ env.ENVIRONMENT }} \
+            -var-file=${{ env.ENVIRONMENT }}.tfvars
+
+      - name: Terraform Apply (${{ env.ENVIRONMENT }})
+        working-directory: infra/envs/${{ env.ENVIRONMENT }}
+        run: |
+          terraform apply \
+            -input=false \
+            tfplan.${{ env.ENVIRONMENT }}
