@@ -124,3 +124,18 @@ Start dev environment:
 
 ```powershell
 pwsh ./start-environment.ps1 -Environment dev -PlanFirst -SummaryFile TRACKER.md
+
+Fast apply:
+
+pwsh ./start-environment.ps1 -Environment dev
+
+
+VS Code tasks:
+
+🌅 START OF DAY: Terraform Apply (DEV)
+
+🚨 END OF DAY: Terraform Destroy (DEV)
+
+Destroy manually:
+
+terraform destroy -auto-approve -var-file='dev.tfvars' -chdir=infra/envs/dev
