@@ -14,7 +14,7 @@ terraform {
     resource_group_name  = "tfstate-rg"
     storage_account_name = "tfstatekingsila"
     container_name       = "state"
-    key                  = "PLACEHOLDER" # This will be overridden by -backend-config
+    key                  = "prod/terraform.tfstate"
   }
 }
 
