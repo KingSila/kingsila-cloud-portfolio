@@ -2,7 +2,7 @@
 
 Welcome 👋
 This repository documents my journey from experienced engineer to
-**Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting fully remote roles in the **US** and **Europe**.
+**Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting Hybrid or fully remote roles in **SA**, **US** and **Europe**.
 
 ---
 
@@ -34,18 +34,17 @@ See [`TRACKER.md`](./TRACKER.md) for weekly milestones.
 
 ## 🧱 Project Structure
 
-infra/ → Terraform root, modules, and envs
-├── modules/ → Reusable infrastructure modules
-├── envs/ → Environment configs (dev/test/prod)
-└── backend/ → Remote state configuration
+```text
+infra/                   → Terraform root, modules, and environments
+  ├── modules/           → Reusable Terraform modules
+  ├── envs/              → Environment configs (dev/test/prod)
+  └── backend/           → Remote state configuration
 .github/
-└── workflows/ → CI/CD pipelines for plan/apply/destroy
-docs/ → Architecture, security & CI/CD docs
-notes/ → Daily logs & learning notes
-pipelines/ → Additional scripts & tooling
-
-
----
+  └── workflows/         → CI/CD pipelines (plan/apply/destroy)
+docs/                    → Architecture, security & CI/CD documentation
+notes/                   → Daily logs & learning notes
+pipelines/               → Additional automation and pipeline scripts
+```
 
 ## 🧰 Tooling
 
@@ -57,13 +56,9 @@ pipelines/ → Additional scripts & tooling
 | Security | Azure Policy, Defender for Cloud, Key Vault |
 | Observability | Azure Monitor, Log Analytics |
 | Version Control | Git, GitHub |
-
 ---
-
 ## 🧩 Featured Portfolio Project
-
 ### **End-to-End Azure Cloud Platform with Terraform & GitHub Actions**
-
 Includes:
 
 - Hub-and-Spoke network foundation
@@ -76,20 +71,19 @@ Includes:
 This project demonstrates cloud engineering at scale, built for real production patterns.
 
 ---
-
 ## 🏁 Current Status
-
 ### **Week 3–4: CI/CD, Environments & Stability** ✔️ Completed
 
 Progress so far:
 
 - ✔️ Stable multi-environment setup (dev, test, prod)
-- ✔️ Remote backend using environment-based state keys
-- ✔️ Terraform modules for VNet, App Service, Key Vault, policies
-- ✔️ CI/CD pipeline (plan on PR, deploy on merge)
-- ✔️ Destroy workflow with safety confirmation
-- ✔️ Environment approvals + branch protection
-- ⚡ Next: Enable **Defender for Cloud baseline** & expand Policy-as-Code
+- ✔️ Remote backend using environment-bound state keys
+- ✔️ Terraform modules (VNet, App Service, Key Vault, Policies)
+- ✔️ GitHub Actions: plan on PR, apply on merge
+- ✔️ Destroy workflow with confirmation gate
+- ✔️ Environment approvals + branch protection rules
+
+⚡ **Next:** Enable Defender for Cloud baseline & expand Policy-as-Code
 
 ---
 
@@ -97,45 +91,36 @@ Progress so far:
 
 ### Prerequisites
 
-- Azure CLI installed + logged in
+- Azure CLI installed + authenticated
 - Terraform **>= 1.9.8**
-- GitHub repository with OIDC secrets configured
-  (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`)
+- GitHub repo configured with OIDC secrets:
+  - `AZURE_CLIENT_ID`
+  - `AZURE_TENANT_ID`
+  - `AZURE_SUBSCRIPTION_ID`
 
 ---
 
 ## 🏗️ CI/CD Workflow
+### Deploying with GitHub Actions
 
-### Deploying via GitHub Actions
+1. Create a feature branch
+2. Push → GitHub Actions runs **Terraform Plan**
+3. Open a PR → reviewers see the plan diff
+4. Merge to `main` → pipeline **applies** to environment
+5. Optional teardown via `workflow_dispatch`
 
-1. Create feature branch
-2. Push → Terraform Plan runs
-3. Open PR → reviewers see plan
-4. Merge to main → auto apply to environment
-5. Optional destroy via workflow_dispatch
+This workflow ensures:
 
-This ensures **zero local credentials**, full auditability, and safe deployments.
+- Zero local credentials
+- Reproducible deployments
+- Full audit trail
+- Safe, controlled promotion between environments
 
 ---
 
 ## 🔁 Daily Environment Workflow (Local Automation)
 
-Start dev environment:
+### Start the dev environment:
 
 ```powershell
 pwsh ./start-environment.ps1 -Environment dev -PlanFirst -SummaryFile TRACKER.md
-
-Fast apply:
-
-pwsh ./start-environment.ps1 -Environment dev
-
-
-VS Code tasks:
-
-🌅 START OF DAY: Terraform Apply (DEV)
-
-🚨 END OF DAY: Terraform Destroy (DEV)
-
-Destroy manually:
-
-terraform destroy -auto-approve -var-file='dev.tfvars' -chdir=infra/envs/dev
