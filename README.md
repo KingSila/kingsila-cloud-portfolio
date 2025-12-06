@@ -32,6 +32,7 @@ See [`TRACKER.md`](./TRACKER.md) for weekly milestones.
 
 ## 🧰 Project Structure
 
+```text
 infra/                   → Terraform root, modules, and environments
   ├── modules/           → Reusable Terraform modules
   ├── envs/              → Environment configs (dev/test/prod)
@@ -41,6 +42,7 @@ infra/                   → Terraform root, modules, and environments
 docs/                    → Architecture, security & CI/CD documentation
 notes/                   → Daily logs & learning notes
 pipelines/               → Additional automation and pipeline scripts
+
 
 ## 🧰 Tooling
 
