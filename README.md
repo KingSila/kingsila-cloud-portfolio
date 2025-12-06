@@ -2,7 +2,7 @@
 
 Welcome 👋
 This repository documents my journey from experienced engineer to
-**Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting fully remote roles in the **US** and **Europe**.
+**Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting Hybrid or fully remote roles in **SA**, **US** and **Europe**.
 
 ---
 
