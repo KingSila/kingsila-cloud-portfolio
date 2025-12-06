@@ -24,17 +24,17 @@ resource "azurerm_key_vault" "this" {
 
   public_network_access_enabled = var.public_network_access_enabled
 
+  # Using RBAC-based access model (recommended)
   rbac_authorization_enabled = true
-
 
   tags = var.tags
 }
 
-# # Optional: RBAC roles for identities that need vault access
-# resource "azurerm_role_assignment" "access" {
-#   for_each = var.access_identities
+# Optional RBAC assignments for identities that need access
+resource "azurerm_role_assignment" "access" {
+  for_each = var.access_identities
 
-#   scope                = azurerm_key_vault.this.id
-#   role_definition_name = each.value.role
-#   principal_id         = each.value.principal_id
-# }
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = each.value.role_definition_name
+  principal_id         = each.value.principal_id
+}
