@@ -30,22 +30,17 @@ This repository documents my journey from experienced engineer to
 
 See [`TRACKER.md`](./TRACKER.md) for weekly milestones.
 
----
+## 🧰 Project Structure
 
-## 🧱 Project Structure
-
-infra/ → Terraform root, modules, and envs
-├── modules/ → Reusable infrastructure modules
-├── envs/ → Environment configs (dev/test/prod)
-└── backend/ → Remote state configuration
+infra/                   → Terraform root, modules, and environments
+  ├── modules/           → Reusable Terraform modules
+  ├── envs/              → Environment configs (dev/test/prod)
+  └── backend/           → Remote state configuration
 .github/
-└── workflows/ → CI/CD pipelines for plan/apply/destroy
-docs/ → Architecture, security & CI/CD docs
-notes/ → Daily logs & learning notes
-pipelines/ → Additional scripts & tooling
-
-
----
+  └── workflows/         → CI/CD pipelines (plan/apply/destroy)
+docs/                    → Architecture, security & CI/CD documentation
+notes/                   → Daily logs & learning notes
+pipelines/               → Additional automation and pipeline scripts
 
 ## 🧰 Tooling
 
