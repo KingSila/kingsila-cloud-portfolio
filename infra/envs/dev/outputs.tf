@@ -12,13 +12,13 @@ output "resource_group_name" {
 #############################
 
 output "keyvault_name" {
-  description = "The name of the Key Vault."
-  value       = module.keyvault.name
+  description = "Central platform Key Vault name"
+  value       = module.central_key_vault.name
 }
 
 output "keyvault_uri" {
-  description = "The DNS URI of the Key Vault, used for secret references."
-  value       = module.keyvault.vault_uri
+  description = "Central platform Key Vault URI"
+  value       = module.central_key_vault.uri
 }
 
 #############################
@@ -57,4 +57,9 @@ output "nsg_name" {
 output "route_table_name" {
   description = "The name of the route table."
   value       = azurerm_route_table.rt.name
+}
+
+output "dev_app_identity_client_id" {
+  description = "Client ID of the user-assigned managed identity used by the dev app"
+  value       = module.mi_app_dev.client_id
 }
