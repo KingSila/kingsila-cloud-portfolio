@@ -136,6 +136,14 @@ resource "azurerm_linux_web_app" "app" {
   tags = var.tags
 }
 
+module "defender_free" {
+  source = "./modules/defender_free"
+
+  # Optional: set if you want emails
+  security_contact_email = "smokone@gmail.com"
+  security_contact_phone = "+27-82-900-0497"
+}
+
 # ---------------------------------------------------------
 # Outputs (optional)
 # ---------------------------------------------------------
