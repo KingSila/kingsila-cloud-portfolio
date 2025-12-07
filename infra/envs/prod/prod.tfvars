@@ -1,13 +1,14 @@
-# Common configuration
+# Prod Environment Configuration
 
-environment            = "prod"
-location               = "southafricanorth"
-prod_connection_string = "REPLACE_ME_FROM_PIPELINE_OR_LOCAL"
-vnet_cidr              = "10.10.0.0/16"
-app_sku                = "B1"
+location = "southafricanorth"
+
+# Use a distinct CIDR if you ever peer VNets:
+vnet_cidr = "10.30.0.0/16"
+
+# You can bump this later when you want more capacity
+app_sku = "B1"
 
 tags = {
-  environment = "prod"
   owner       = "kingsila"
+  environment = "prod"
 }
-allowed_locations = ["southafricanorth", "southafricawest"]
