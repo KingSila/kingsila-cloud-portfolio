@@ -14,6 +14,28 @@ resource "azurerm_service_plan" "this" {
 }
 
 #############################################
+# App Settings (KV + optional App Insights)
+#############################################
+
+locals {
+  # Base settings
+  base_app_settings = {
+    "CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${var.key_vault_uri}secrets/${var.connection_string_secret}/)"
+  }
+
+  # Include App Insights only if connection string is not null or empty
+  app_settings_with_ai = (
+    var.app_insights_connection_string != null &&
+    trim(var.app_insights_connection_string) != ""
+    ) ? merge(
+    local.base_app_settings,
+    {
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = var.app_insights_connection_string
+    }
+  ) : local.base_app_settings
+}
+
+#############################################
 # Linux Web App
 #############################################
 
@@ -39,9 +61,5 @@ resource "azurerm_linux_web_app" "this" {
     }
   }
 
-  app_settings = {
-    # Example of a Key Vault reference-based connection string in an app setting.
-    # Your app code can read this as an env var (e.g. CONNECTION_STRING)
-    "CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${var.key_vault_uri}secrets/${var.connection_string_secret}/)"
-  }
+  app_settings = local.app_settings_with_ai
 }
