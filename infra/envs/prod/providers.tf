@@ -74,7 +74,7 @@ module "mi_app_prod" {
   source = "../../modules/managed_identity_app"
 
   name                = "mi-kingsila-app-prod"
-  resource_group_name = "rg-kingsila-prod"
+  resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
   key_vault_id        = module.central_key_vault.id
   environment         = var.environment
