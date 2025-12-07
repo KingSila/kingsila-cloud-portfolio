@@ -116,11 +116,16 @@ This workflow ensures:
 - Full audit trail
 - Safe, controlled promotion between environments
 
----
+## CI Status
 
-## 🔁 Daily Environment Workflow (Local Automation)
+### Terraform Pipeline
 
-### Start the dev environment:
+[![Terraform CI/CD](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml)
 
-```powershell
-pwsh ./start-environment.ps1 -Environment dev -PlanFirst -SummaryFile TRACKER.md
+### Environment Status
+
+| Environment | Status Badge |
+|------------|--------------|
+| **Dev**    | ![Dev Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=dev) |
+| **Test**   | ![Test Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=test) |
+| **Prod**   | ![Prod Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=prod) |

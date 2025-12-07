@@ -14,6 +14,39 @@ resource "azurerm_service_plan" "this" {
 }
 
 #############################################
+# Application Insights
+#############################################
+
+resource "azurerm_application_insights" "this" {
+  name                = "${var.name}-appi"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  application_type = "web"
+
+  tags = var.tags
+}
+
+#############################################
+# App Settings (KV + App Insights)
+#############################################
+
+locals {
+  # Base settings – your existing KV reference
+  base_app_settings = {
+    "CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${var.key_vault_uri}secrets/${var.connection_string_secret}/)"
+  }
+
+  # Always include App Insights connection string from the resource we just created
+  app_settings_with_ai = merge(
+    local.base_app_settings,
+    {
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.this.connection_string
+    }
+  )
+}
+
+#############################################
 # Linux Web App
 #############################################
 
@@ -39,9 +72,5 @@ resource "azurerm_linux_web_app" "this" {
     }
   }
 
-  app_settings = {
-    # Example of a Key Vault reference-based connection string in an app setting.
-    # Your app code can read this as an env var (e.g. CONNECTION_STRING)
-    "CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${var.key_vault_uri}secrets/${var.connection_string_secret}/)"
-  }
+  app_settings = local.app_settings_with_ai
 }
