@@ -35,8 +35,8 @@
 ## Weeks 5–6: Security, Compliance & Platform Guardrails
 
 - [x] Finalise Azure Policy as Code (allowed locations/SKU/naming)
-- [ ] Create policy-assignment Terraform module
-- [ ] Enable Defender for Cloud baseline
+- [x] Create policy-assignment Terraform module
+- [x] Enable Defender for Cloud baseline
 - [ ] Centralise Key Vault + workload identities (OIDC / MI)
 - [ ] Add tfsec / checkov scanning to CI
 - [ ] Document security architecture (`/docs/security.md`)

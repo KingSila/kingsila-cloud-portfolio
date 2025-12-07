@@ -1,18 +1,17 @@
 # ---------------------------------------------------------
 # Azure identity running terraform (OIDC or local)
 # ---------------------------------------------------------
-data "azurerm_client_config" "current" {}
+# data "azurerm_client_config" "current" {}
+# 🔹 Already defined in provider.tf – keep only ONE copy per module.
 
 # ---------------------------------------------------------
 # Subscription + Built-in Policy Definition (Allowed locations)
 # ---------------------------------------------------------
 data "azurerm_subscription" "current" {
-  # Explicit, though optional – makes intent clear
   subscription_id = data.azurerm_client_config.current.subscription_id
 }
 
 # Built-in "Allowed locations" policy definition
-# ID: /providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c
 data "azurerm_policy_definition" "allowed_locations" {
   name = "e56962a6-4747-49cd-b67b-bf8b01975c4c"
 }
@@ -28,7 +27,6 @@ module "policy_allowed_locations" {
   display_name = "Allowed locations (${var.tags.environment})"
   description  = "Restrict locations for ${var.tags.environment} environment."
 
-  # parameters is a simple JSON string argument in azurerm 4.x, passed via module
   parameters = {
     listOfAllowedLocations = {
       value = var.allowed_locations
@@ -38,7 +36,6 @@ module "policy_allowed_locations" {
 
 # ---------------------------------------------------------
 # Resource Group
-# Driven by var.tags.environment (dev/test/prod)
 # ---------------------------------------------------------
 resource "azurerm_resource_group" "rg" {
   name     = "rg-${var.tags.owner}-${var.tags.environment}"
@@ -78,25 +75,24 @@ resource "azurerm_route_table" "rt" {
 }
 
 # ---------------------------------------------------------
-# Key Vault (single module used for all environments)
+# 🔻 OLD PER-ENV KEY VAULT – REMOVE THIS BLOCK
 # ---------------------------------------------------------
-module "keyvault" {
-  source = "../../modules/keyvault"
-
-  name                = lower("kv-main${var.tags.owner}-${var.tags.environment}")
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-
-  tags = var.tags
-}
-
-# Terraform identity access to Key Vault
-resource "azurerm_role_assignment" "kv_terraform" {
-  scope                = module.keyvault.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
+# module "keyvault" {
+#   source = "../../modules/keyvault"
+#
+#   name                = lower("kv-main${var.tags.owner}-${var.tags.environment}")
+#   location            = azurerm_resource_group.rg.location
+#   resource_group_name = azurerm_resource_group.rg.name
+#   tenant_id           = data.azurerm_client_config.current.tenant_id
+#
+#   tags = var.tags
+# }
+#
+# resource "azurerm_role_assignment" "kv_terraform" {
+#   scope                = module.keyvault.id
+#   role_definition_name = "Key Vault Secrets Officer"
+#   principal_id         = data.azurerm_client_config.current.object_id
+# }
 
 # ---------------------------------------------------------
 # App Service Plan
@@ -111,7 +107,7 @@ resource "azurerm_service_plan" "app" {
 }
 
 # ---------------------------------------------------------
-# Web App (Linux)
+# Web App (Linux) – now using central KV + user-assigned MI
 # ---------------------------------------------------------
 resource "azurerm_linux_web_app" "app" {
   name                = "kingsila-app-${var.tags.environment}-web"
@@ -119,8 +115,10 @@ resource "azurerm_linux_web_app" "app" {
   location            = azurerm_resource_group.rg.location
   service_plan_id     = azurerm_service_plan.app.id
 
+  # 🔹 Switch from SystemAssigned → UserAssigned MI from module.mi_app_prod
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [module.mi_app_prod.identity_id]
   }
 
   site_config {
@@ -130,7 +128,8 @@ resource "azurerm_linux_web_app" "app" {
   }
 
   app_settings = {
-    ConnectionStrings__Db = "@Microsoft.KeyVault(SecretUri=${module.keyvault.vault_uri}secrets/connection-string/)"
+    # 🔹 Central Key Vault connection string (from provider.tf)
+    ConnectionStrings__Db = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.prod_connection_string.id})"
   }
 
   tags = var.tags

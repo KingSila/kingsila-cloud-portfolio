@@ -44,3 +44,9 @@ variable "app_sku" {
   type        = string
 
 }
+
+variable "dev_connection_string" {
+  type        = string
+  description = "Dev DB connection string (from GitHub secret / tfvars)"
+  sensitive   = true
+}
