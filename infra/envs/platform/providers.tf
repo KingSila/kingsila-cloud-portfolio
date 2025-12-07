@@ -12,7 +12,7 @@ terraform {
     resource_group_name  = "tfstate-rg"
     storage_account_name = "tfstatekingsila"
     container_name       = "state"
-    key                  = "dev/terraform.tfstate"
+    key                  = "platform/terraform.tfstate"
   }
 }
 
