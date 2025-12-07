@@ -32,22 +32,12 @@ data "azurerm_client_config" "current" {}
 # ---------------------------------------------------------
 # Platform Resource Group (for shared / central resources)
 # ---------------------------------------------------------
-resource "azurerm_resource_group" "rg_platform" {
-  name     = "rg-kingsila-platform"
-  location = var.location
-
-  tags = merge(var.tags, {
-    environment = "platform"
-    owner       = var.tags.owner
-  })
-}
-
 
 module "central_key_vault" {
   source = "../../modules/keyvault_central"
 
   name                = "kv-kingsila-platform"
-  resource_group_name = azurerm_resource_group.rg_platform.name
+  resource_group_name = "rg-kingsila-platform"
   location            = var.location
   tenant_id           = data.azurerm_client_config.current.tenant_id
 
@@ -56,6 +46,24 @@ module "central_key_vault" {
     workload    = "shared-secrets"
   })
 }
+
+# Role definition lookup for Key Vault Secrets Officer
+data "azurerm_role_definition" "kv_secrets_officer" {
+  name  = "Key Vault Secrets Officer"
+  scope = module.central_key_vault.id
+}
+
+resource "azurerm_role_assignment" "kv_terraform_central" {
+  scope              = module.central_key_vault.id
+  role_definition_id = data.azurerm_role_definition.kv_secrets_officer.id
+
+  # This is your identity (user when local, SP in CI)
+  principal_id = data.azurerm_client_config.current.object_id
+
+  # 🔹 IMPORTANT: do NOT set principal_type here.
+  # Let the provider/Azure infer "User" vs "ServicePrincipal".
+}
+
 
 # ─────────────────────────────────────────────
 # 2) Dev app managed identity with KV access
