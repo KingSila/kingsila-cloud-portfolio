@@ -40,9 +40,3 @@ variable "connection_string_secret" {
   description = "Name of the connection string secret in Key Vault."
   default     = "dev-connection-string"
 }
-
-variable "app_insights_connection_string" {
-  type        = string
-  description = "Optional Application Insights connection string to enable telemetry."
-  default     = null
-}

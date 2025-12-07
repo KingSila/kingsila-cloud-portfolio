@@ -14,25 +14,36 @@ resource "azurerm_service_plan" "this" {
 }
 
 #############################################
-# App Settings (KV + optional App Insights)
+# Application Insights
+#############################################
+
+resource "azurerm_application_insights" "this" {
+  name                = "${var.name}-appi"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  application_type = "web"
+
+  tags = var.tags
+}
+
+#############################################
+# App Settings (KV + App Insights)
 #############################################
 
 locals {
-  # Base settings
+  # Base settings – your existing KV reference
   base_app_settings = {
     "CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${var.key_vault_uri}secrets/${var.connection_string_secret}/)"
   }
 
-  # Include App Insights only if connection string is not null or empty
-  app_settings_with_ai = (
-    var.app_insights_connection_string != null &&
-    trim(var.app_insights_connection_string) != ""
-    ) ? merge(
+  # Always include App Insights connection string from the resource we just created
+  app_settings_with_ai = merge(
     local.base_app_settings,
     {
-      "APPLICATIONINSIGHTS_CONNECTION_STRING" = var.app_insights_connection_string
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.this.connection_string
     }
-  ) : local.base_app_settings
+  )
 }
 
 #############################################
