@@ -1,0 +1,37 @@
+name: Terraform Security Scan
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  tfsec:
+    name: tfsec – Terraform security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Install tfsec (simple curl installer from Aqua)
+      - name: Install tfsec
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
+          tfsec --version
+
+      # 1) Non-blocking scan – shows all issues (including MEDIUM)
+      - name: tfsec (report – all severities, does NOT fail build)
+        run: |
+          # Scan the infra folder; adjust path if needed
+          ./tfsec ./infra || true
+        continue-on-error: true
+
+      # 2) Enforcing scan – fail only on HIGH / CRITICAL
+      - name: tfsec (enforce HIGH/CRITICAL only)
+        run: |
+          ./tfsec ./infra --minimum-severity HIGH
