@@ -1,3 +1,7 @@
+
+data "azurerm_client_config" "current" {}
+
+
 resource "azurerm_subscription_policy_assignment" "this" {
   name                 = var.name
   display_name         = var.display_name

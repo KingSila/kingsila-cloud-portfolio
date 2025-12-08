@@ -2,6 +2,8 @@
 # Dev Environment Configuration
 # ----------------------------
 
+environment       = "dev"
+allowed_locations = ["southafricanorth", "southafricawest"]
 
 location = "southafricanorth"
 

@@ -30,3 +30,13 @@ variable "app_sku" {
   description = "App Service Plan SKU for test."
   default     = "B1"
 }
+
+variable "environment" {
+  type        = string
+  description = "Environment name (dev/test/prod)"
+}
+
+variable "allowed_locations" {
+  type        = list(string)
+  description = "List of allowed regions for this environment."
+}
