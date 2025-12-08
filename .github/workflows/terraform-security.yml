@@ -15,23 +15,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install tfsec (simple curl installer from Aqua)
-      - name: Install tfsec
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
-          tfsec --version
+      ###############################################################
+      # 1) Non-blocking tfsec scan
+      #    Shows ALL findings (LOW, MEDIUM, HIGH, CRITICAL)
+      #    Does NOT fail the PR — just adds annotations
+      ###############################################################
+      - name: tfsec report (all severities, non-blocking)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra
+          soft_fail: true
 
-      # 1) Non-blocking scan – shows all issues (including MEDIUM)
-      - name: tfsec (report – all severities, does NOT fail build)
-        run: |
-          # Scan the infra folder; adjust path if needed
-          ./tfsec ./infra || true
-        continue-on-error: true
-
-      # 2) Enforcing scan – fail only on HIGH / CRITICAL
-      - name: tfsec (enforce HIGH/CRITICAL only)
-        run: |
-          ./tfsec ./infra --minimum-severity HIGH
+      ###############################################################
+      # 2) Blocking tfsec scan
+      #    Fails the PR ONLY if HIGH or CRITICAL issues exist
+      ###############################################################
+      - name: tfsec enforce (HIGH/CRITICAL only)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra
+          minimum_severity: HIGH
