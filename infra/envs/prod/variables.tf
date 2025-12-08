@@ -31,3 +31,13 @@ variable "app_sku" {
   # you can bump this later if you want a bigger SKU in prod
   default = "B1"
 }
+
+variable "environment" {
+  type        = string
+  description = "Environment name (dev/test/prod)"
+}
+
+variable "allowed_locations" {
+  type        = list(string)
+  description = "List of allowed regions for this environment."
+}
