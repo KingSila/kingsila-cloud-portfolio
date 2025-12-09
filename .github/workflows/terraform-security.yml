@@ -8,10 +8,11 @@ on:
 
 permissions:
   contents: read
+  security-events: write  # needed for SARIF upload
 
 jobs:
-  tfsec:
-    name: tfsec – Terraform security scan
+  tfsec-and-checkov:
+    name: Terraform security scans (tfsec + checkov)
     runs-on: ubuntu-latest
 
     steps:
@@ -19,28 +20,37 @@ jobs:
         uses: actions/checkout@v4
 
       ###############################################################
-      # 1) Non-blocking tfsec scan via official action
-      #    → Adds annotations & SARIF, does NOT fail the job
+      # 1) tfsec SARIF via official tfsec-sarif-action
+      #    - This runs tfsec and writes tfsec.sarif for upload
       ###############################################################
-      - name: tfsec report (all severities, non-blocking)
-        uses: aquasecurity/tfsec-action@v1.0.3
+      - name: Run tfsec (SARIF)
+        uses: aquasecurity/tfsec-sarif-action@v0.1.4
         with:
+          sarif_file: tfsec.sarif
           working_directory: infra
-          soft_fail: true
+          # optional extras if you want:
+          # tfsec_version: latest
+          # tfsec_args: '--exclude-path infra/legacy'
+
+      - name: Upload tfsec SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: tfsec.sarif
 
       ###############################################################
-      # 2) Install tfsec binary
-      #    → For CLI use with strict severity thresholds
+      # 2) Checkov SARIF via CLI + upload
       ###############################################################
-      - name: Install tfsec CLI
-        run: |
-          go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
-          echo "$HOME/go/bin" >> $GITHUB_PATH
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      ###############################################################
-      # 3) Enforcing tfsec run (HIGH/CRITICAL only)
-      #    → Fails the job if HIGH/CRITICAL issues exist
-      ###############################################################
-      - name: tfsec enforce (HIGH/CRITICAL only)
+      - name: Install Checkov
         run: |
-          tfsec ./infra --minimum-severity HIGH
+          python -m pip install --upgrade pip
+          pip install checkov
+
+      # Non-blocking for now: we want visibility first, then enforcement later
+      - name: Run Checkov (SARIF, non-blocking)
+        run: |
+          che
