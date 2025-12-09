@@ -1,6 +1,8 @@
 # Test Environment Configuration
 
-location = "southafricanorth"
+environment       = "test"
+allowed_locations = ["southafricanorth", "southafricawest"]
+location          = "southafricanorth"
 
 vnet_cidr = "10.20.0.0/16"
 

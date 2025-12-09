@@ -4,6 +4,42 @@
 # are managed in infra/envs/platform
 #############################################
 
+data "azurerm_client_config" "current" {}
+
+
+module "policy_definition_allowed_locations" {
+  source = "../../modules/policy_definition_allowed_locations"
+
+  name            = "allowed-locations-${var.environment}"
+  display_name    = "Allowed locations (${var.environment})"
+  description     = "Only allow resources in the approved regions for ${var.environment}."
+  policy_category = "General"
+
+  # This comes from your dev tfvars:
+  allowed_locations = var.allowed_locations
+}
+
+module "policy_allowed_locations_assignment" {
+  source = "../../modules/policy_assignment"
+
+  name            = "allowed-locations-${var.environment}"
+  display_name    = "Allowed locations (${var.environment})"
+  description     = "Deny deployments outside approved regions for ${var.environment}."
+  subscription_id = data.azurerm_client_config.current.subscription_id
+
+  # From the definition module you just wired
+  policy_definition_id = module.policy_definition_allowed_locations.policy_definition_id
+
+  enforce = true
+
+  # Azure expects this exact parameter name
+  parameters = {
+    listOfAllowedLocations = {
+      value = var.allowed_locations
+    }
+  }
+}
+
 #######################################################
 # 1. Resource Group (ephemeral)
 #######################################################

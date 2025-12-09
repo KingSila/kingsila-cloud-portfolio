@@ -1,5 +1,8 @@
 # Prod Environment Configuration
 
+environment       = "prod"
+allowed_locations = ["southafricanorth", "southafricawest"]
+
 location = "southafricanorth"
 
 # Use a distinct CIDR if you ever peer VNets:
