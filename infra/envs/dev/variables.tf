@@ -27,7 +27,7 @@ variable "connection_string_secret_name" {
 
 variable "app_sku" {
   type        = string
-  description = "App Service Plan SKU for dev."
+  description = "App Service Plan SKU for dev"
   default     = "B1"
 }
 
