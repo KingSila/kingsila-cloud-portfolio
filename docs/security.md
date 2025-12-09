@@ -1,87 +1,72 @@
-## Platform Guardrails – Deployment Location Policy
+# Security Overview
 
-Our cloud platform enforces a subscription-level **Allowed Locations Policy** to ensure all resources are deployed only into approved Azure regions. This provides consistency, governance, and cost/security predictability across all environments.
+## Central Key Vault (Platform Layer)
 
----
+A single, platform-level Key Vault (`kv-kingsila-platform`) stores shared and environment-specific secrets.
+It is deployed in the `rg-kingsila-platform` resource group, which is never destroyed.
+This ensures secrets, connection strings, and long-lived credentials remain stable across infrastructure changes.
 
-### **What This Policy Does**
-
-The policy denies any deployment where the target Azure region is *not* part of the allowed list defined for that environment.
-If a resource attempts to deploy to a disallowed region, Azure Policy blocks the request before the resource is created.
-
----
-
-### **Environments Covered**
-
-This guardrail is applied to all environments managed by Terraform:
-
-- **dev**
-- **test**
-- **prod**
-
-Each environment can have its own region list, depending on business or compliance requirements.
+Key points:
+- RBAC is enabled; access is controlled through Azure AD roles.
+- Network ACLs are configured for "deny by default" with `AzureServices` bypass.
+- GitHub Actions OIDC service principal is granted the minimum role required to set and update secrets.
+- Application environments (dev/test/prod) reference this vault but do not create or modify it.
 
 ---
 
-### **Where Allowed Locations Are Configured**
+## Secrets Flow (GitHub → Key Vault → Application)
 
-Allowed regions are defined in two places:
+Secrets are never stored in Terraform code or state.
+The flow for all environments is:
 
-1. **Environment tfvars files**
-   Example:
-   `infra/envs/dev/dev.tfvars`
+1. **GitHub Actions environment secrets**
+   Each environment stores its connection string or sensitive configuration in GitHub Actions (e.g. `DEV_DB_CONNECTION_STRING`, `TEST_DB_CONNECTION_STRING`, `PROD_DB_CONNECTION_STRING`).
+
+2. **CI pipeline writes secrets to Platform Key Vault**
+   During deployment, Terraform reads the GitHub secret and writes it into the central Key Vault as:
+   - `dev-connection-string`
+   - `test-connection-string`
+   - `prod-connection-string`
+
+3. **Application reads secrets from Key Vault**
+   Applications use Managed Identity, and App Service uses Key Vault references in app settings:
+   ```
+   @Microsoft.KeyVault(SecretUri=<secret-uri>)
+   ```
+   This keeps connection strings and other sensitive values out of code and configuration files.
+
+This pattern ensures:
+- No secrets in source control.
+- No secrets in Terraform state.
+- Consistent handling across all environments.
+
+---
+
+## Allowed-Locations Policy
+
+The Allowed-Locations Azure Policy restricts where resources may be deployed for each environment.
+This prevents accidental creation of infrastructure in unauthorized regions.
+
+### Purpose
+- Enforce compliance with the organization's region strategy.
+- Prevent drift by blocking deployments to regions outside the approved list.
+
+### Where the Code Lives
+- Policy definition module:
+  `modules/policy_definition_allowed_locations`
+- Policy assignment module:
+  `modules/policy_assignment`
+- Environment-level wiring:
+  `infra/envs/<env>/main.tf`
+
+### How to Change Allowed Locations
+1. Edit the `<env>.tfvars` file (e.g. `dev.tfvars`, `test.tfvars`, `prod.tfvars`)
+2. Update the `allowed_locations` variable:
    ```hcl
    allowed_locations = ["southafricanorth", "southafricawest"]
+   ```
+3. Commit the change and re-apply Terraform for that environment.
 
-
-## Secret Management – End-to-End Flow
-
-This section explains how application secrets (e.g. database connection strings) are handled across environments (**dev / test / prod**).
-
-The goals of this design:
-
-- No secrets in Terraform code or state
-- No secrets in source control
-- Consistent pattern across all environments
-- Easy secret rotation without changing infra
+The policy assignment will automatically update to reflect the new allowed region list.
 
 ---
-
-### 1. Where Secrets Live
-
-Secrets exist in two main places:
-
-1. **GitHub Actions Secrets**
-   - Per-environment values, e.g.:
-     - `DEV_DB_CONNECTION_STRING`
-     - `TEST_DB_CONNECTION_STRING`
-     - `PROD_DB_CONNECTION_STRING`
-   - These are the *source of truth* for sensitive values.
-   - Stored encrypted inside GitHub, never committed to the repo.
-
-2. **Azure Key Vault (per environment)**
-   - One Key Vault per environment, created by Terraform:
-     - `kv-main<owner>-dev`
-     - `kv-main<owner>-test`
-     - `kv-main<owner>-prod`
-   - Used as the runtime secret store for applications.
-   - Secrets are written into Key Vault by the CI pipeline.
-
-Terraform **does not** store or manage secret values – only the Key Vault infrastructure.
-
----
-
-### 2. How Secrets Move (Pipeline Flow)
-
-For each environment, the CI/CD pipeline performs the following after a successful `terraform apply`:
-
-1. Reads the correct connection string from GitHub Secrets:
-   - `DEV_DB_CONNECTION_STRING`, `TEST_DB_CONNECTION_STRING`, or `PROD_DB_CONNECTION_STRING`.
-2. Uses `terraform output -raw key_vault_name` to get the Key Vault name for that environment.
-3. Calls Azure CLI to write/update the secret value in Key Vault, for example:
-
-   ```bash
-   az keyvault secret set \
-     --vault-name "<kv-name>" \
-     --name "connection-string" \
-     --value "<connection-string-from-github-secret>"
