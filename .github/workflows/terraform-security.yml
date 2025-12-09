@@ -53,7 +53,10 @@ jobs:
       # Non-blocking for now: we want visibility first, then enforcement later
       - name: Run Checkov (SARIF, non-blocking)
         run: |
-          checkov -d infra -o sarif > checkov.sarif || true
+          checkov \
+            -d infra \
+            -o sarif \
+            --output-file-path checkov.sarif || true
 
       - name: Upload Checkov SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
