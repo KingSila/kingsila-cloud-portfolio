@@ -1,4 +1,4 @@
-# 12-Week Platform Engineering Tracker
+# 12-Week Platform Engineering Tracker (Realigned 2025-12-09)
 **Azure · Terraform · GitHub Actions · AKS · SRE**
 
 ---
@@ -11,61 +11,87 @@
 - [x] Fixed artifact upload & naming issues
 - [x] Set up GitHub Environments (dev/test/prod/destroy)
 - [x] Added branch protection for `main`
-- [x] Enabled pre-commit (fmt, validate, tflint, markdown lint)
+- [x] Enabled pre-commit hooks (fmt, validate, tflint, markdown lint)
 - [x] Added environment lifecycle scripts + VS Code tasks
 - [x] Documented CI/CD (`/docs/cicd.md`)
 - [x] Added drift detection scaffolding
+- [x] Fully stabilised plan/apply workflow across environments
+- [x] Wired secrets flow from GitHub → Terraform → Key Vault
+- [x] Added App Service + App Insights + telemetry validation
+
+*Weeks 1–2 overshot the original plan — you’ve built a production-grade CI baseline.*
 
 ---
 
 ## ✅ Weeks 3–4: IaC Governance & Multi-Env Foundations (COMPLETED)
 
 - [x] Refactored Terraform environments with stable backend keys
-- [x] Fixed `for_each` list/map issues
+- [x] Fixed `for_each` list/map issues across modules
 - [x] Integrated remote state for dev/test/prod
-- [x] Created reusable network/resource modules
+- [x] Created reusable modules (networking, key vault, policy)
 - [x] Added destroy protections + approval workflow
 - [x] Introduced tagging & cost governance groundwork
 - [x] Added management groups + RBAC scaffolding
-- [x] Solved state/drift issues across environments
-- [x] Finalised Platform Environment Lifecycle workflow
+- [x] Solved environment drift issues
+- [x] Finalised Environment Lifecycle workflow
+- [x] Implemented **central Key Vault pattern** across environments
+- [x] Fixed RBAC (management + data plane) for CI SP
+- [x] Ensured App Service uses Key Vault references end-to-end
+
+*Weeks 3–4 now correctly reflect your deep RBAC, identity, and Key Vault work.*
 
 ---
 
-## Weeks 5–6: Security, Compliance & Platform Guardrails
+## 🛡️ Weeks 5–6: Security, Compliance & Platform Guardrails
+**Status: 75% completed**
 
-- [x] Finalise Azure Policy as Code (allowed locations/SKU/naming)
-- [x] Create policy-assignment Terraform module
-- [x] Enable Defender for Cloud baseline
-- [ ] Centralise Key Vault + workload identities (OIDC / MI)
-- [ ] Add tfsec / checkov scanning to CI
-- [ ] Document security architecture (`/docs/security.md`)
+### Completed
+- [x] Finalised Azure Policy-as-Code (allowed locations, SKU restrictions)
+- [x] Created reusable policy-assignment Terraform module
+- [x] Enabled Defender for Cloud baseline
+- [x] Centralised Key Vault + workload identity pattern (CI + App MI)
+- [x] Implemented tfsec scanning in CI
+  - SARIF upload
+  - Pull request annotations
+  - CLI enforcement mode ready
+- [x] Stabilised end-to-end secret provisioning for dev/test/prod
+- [x] Verified App Service / Key Vault / Telemetry pipeline working
+
+### Still To Do
+- [ ] Add **checkov** scanning to CI
+- [ ] Document full security architecture (`/docs/security.md`)
+- [ ] Add missing policies (naming standards, deny public endpoints, tag requirements)
+
+> Weeks 5–6 now show your real progress — you’ve completed the hardest parts already.
 
 ---
 
 ## Weeks 7–8: App Platform Layer — AKS & Deployment Standards
+**Not started (0%) — unchanged**
 
 - [ ] Create AKS Terraform module (node pools, identity, logging)
-- [ ] Deploy AKS to dev + integrate with existing VNet
-- [ ] Build base Helm chart template (golden chart)
-- [ ] Build GitHub Actions pipeline for app → AKS deployment
+- [ ] Deploy AKS to dev + integrate with VNet
+- [ ] Build base Helm “golden chart”
+- [ ] Build GitHub Actions pipeline for app → AKS
 - [ ] Implement ingress, certs & workload identity
 - [ ] Document golden deployment pattern (`/docs/platform-runtime.md`)
 
 ---
 
 ## Weeks 9–10: Observability, SRE & Platform Reliability
+**Not started (0%) — unchanged**
 
-- [ ] Add metrics/logs/tracing for AKS + apps
-- [ ] Create platform dashboards (Grafana / App Insights / Log Analytics)
-- [ ] Implement HPA + probes + PDBs
-- [ ] Add alert rules (cluster + deployments)
-- [ ] Define simple SLOs
+- [ ] Add metrics/logs/tracing for AKS + workloads
+- [ ] Create dashboards (Grafana/App Insights/Log Analytics)
+- [ ] Implement HPA + readiness/liveness probes + PDBs
+- [ ] Add alert rules (cluster + workloads)
+- [ ] Define SLOs
 - [ ] Document reliability standards (`/docs/sre.md`)
 
 ---
 
 ## Weeks 11–12: Platform Packaging & Career Positioning
+**Not started (0%) — unchanged**
 
 - [ ] Create architecture diagrams (Hub-Spoke + AKS + CI/CD)
 - [ ] Write Platform Overview in README
@@ -75,6 +101,8 @@
 - [ ] Optional: Publish tech article
 - [ ] Optional: Record walkthrough demo
 
-### Environment Started: dev (2025-12-06 11:52)
+---
 
-### Environment Started: dev (2025-12-06 12:05)
+### Environment Started:
+- dev — **2025-12-06 11:52**
+- dev — **2025-12-06 12:05**
