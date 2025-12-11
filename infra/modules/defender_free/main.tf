@@ -56,11 +56,11 @@ variable "security_contact_phone" {
   default     = "+27829000497"
 }
 
-resource "azurerm_security_center_contact" "example" {
-  name  = "KingSila"
-  email = "smokone@gmail.com"
-  phone = "+27829000497"
+# resource "azurerm_security_center_contact" "example" {
+#   name  = "KingSila"
+#   email = "smokone@gmail.com"
+#   phone = "+27829000497"
 
-  alert_notifications = true
-  alerts_to_admins    = true
-}
+#   alert_notifications = true
+#   alerts_to_admins    = true
+# }

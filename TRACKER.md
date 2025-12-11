@@ -1,4 +1,4 @@
-# 12-Week Platform Engineering Tracker (Realigned 2025-12-09)
+# 12-Week Platform Engineering Tracker (Realigned 2025-12-11)
 **Azure · Terraform · GitHub Actions · AKS · SRE**
 
 ---
@@ -43,7 +43,7 @@
 ---
 
 ## 🛡️ Weeks 5–6: Security, Compliance & Platform Guardrails
-**Status: 75% completed**
+**Status: ~85% completed**
 
 ### Completed
 - [x] Finalised Azure Policy-as-Code (allowed locations, SKU restrictions)
@@ -51,18 +51,21 @@
 - [x] Enabled Defender for Cloud baseline
 - [x] Centralised Key Vault + workload identity pattern (CI + App MI)
 - [x] Implemented tfsec scanning in CI
-  - SARIF upload
-  - Pull request annotations
-  - CLI enforcement mode ready
+  - Non-blocking GitHub Action with annotations
+  - Blocking CLI enforcement mode for HIGH/CRITICAL
+- [x] Implemented Checkov scanning in CI with working SARIF export
+- [x] Implemented tag enforcement policies (owner/environment) at subscription scope
 - [x] Stabilised end-to-end secret provisioning for dev/test/prod
 - [x] Verified App Service / Key Vault / Telemetry pipeline working
+- [x] Generated destroy pipeline YAML and integrated env-specific backend config
 
 ### Still To Do
-- [ ] Add **checkov** scanning to CI
+- [ ] Harden Key Vault `network_acls` (default deny, proper bypass/allow lists) to clear tfsec CRITICAL
 - [ ] Document full security architecture (`/docs/security.md`)
-- [ ] Add missing policies (naming standards, deny public endpoints, tag requirements)
+- [ ] Add naming standard policies
+- [ ] Add “deny public endpoints” policies
 
-> Weeks 5–6 now show your real progress — you’ve completed the hardest parts already.
+> Weeks 5–6 now show your real progress — the remaining work is polish and documentation, not heavy lifting.
 
 ---
 
