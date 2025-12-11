@@ -105,6 +105,46 @@ module "policy_storage_deny_public_access" {
   }
 }
 
+module "policy_deny_public_storage" {
+  source = "./modules/policy_assignment" # adjust path as needed
+
+  name                 = "deny-public-storage"
+  display_name         = "Deny public network access for Storage Accounts"
+  description          = "Ensures storage accounts have public network access disabled."
+  subscription_id      = data.azurerm_client_config.current.subscription_id
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/4fa4b6c0-31ca-4c0d-b10d-24b96f62a751"
+  enforce              = true
+
+  parameters = {
+    effect = {
+      value = "Deny"
+    }
+  }
+}
+
+module "policy_deny_public_key_vault" {
+  source = "./modules/policy_assignment"
+
+  name                 = "deny-public-key-vault"
+  display_name         = "Deny public network access for Key Vaults"
+  description          = "Prevents Key Vaults from allowing public network access."
+  subscription_id      = data.azurerm_client_config.current.subscription_id
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/405c5871-3e91-4644-8a63-58e19d68ff5b"
+  enforce              = true
+  parameters           = null
+}
+
+module "policy_deny_public_sql" {
+  source = "./modules/policy_assignment"
+
+  name                 = "deny-public-sql"
+  display_name         = "Deny public network access for SQL servers"
+  description          = "Prevents SQL servers from having public network access enabled."
+  subscription_id      = data.azurerm_client_config.current.subscription_id
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/1b8ca024-1d5c-4dec-8995-b1a932b41780"
+  enforce              = true
+  parameters           = null
+}
 
 ############################################################
 # Defender for Cloud (baseline)

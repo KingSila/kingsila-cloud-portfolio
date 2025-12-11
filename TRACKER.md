@@ -60,10 +60,9 @@
 - [x] Generated destroy pipeline YAML and integrated env-specific backend config
 
 ### Still To Do
-- [ ] Harden Key Vault `network_acls` (default deny, proper bypass/allow lists) to clear tfsec CRITICAL
-- [ ] Document full security architecture (`/docs/security.md`)
-- [ ] Add naming standard policies
-- [ ] Add “deny public endpoints” policies
+- [x] Harden Key Vault `network_acls` (default deny, proper bypass/allow lists) to clear tfsec CRITICAL
+- [ ] Document full security architecture (`/docs/security.md`
+- [x] Add “deny public endpoints” policies
 
 > Weeks 5–6 now show your real progress — the remaining work is polish and documentation, not heavy lifting.
 
