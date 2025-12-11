@@ -42,14 +42,12 @@ You’ve completed:
 - Secret lifecycle automation end-to-end
 - App Service / Key Vault / telemetry integration validated
 - Destroy pipeline YAML + env-specific backend usage
+- Harden Key Vault `network_acls` to silence tfsec CRITIC
+- Add “deny public endpoints” policies
 
 **Remaining small items:**
 
-- Harden Key Vault `network_acls` to silence tfsec CRITICAL
-- Add naming standard policies
-- Add “deny public endpoints” policies
 - Document full security architecture (`/docs/security.md`)
-
 ### ⏭️ Weeks 7–8: AKS Platform Layer
 **Status:** 0% (Not Started)
 No changes — this work comes after security guardrails.

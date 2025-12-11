@@ -1,71 +1,81 @@
-# 🔐 Security Architecture – KingSila Cloud Platform
+# 🔐 Kingsila Cloud Platform – Security Architecture
 
-This document describes the security model that underpins the KingSila Cloud Platform.
-It covers identity flows, governance guardrails, secret lifecycle, and CI/CD scanning.
+This document defines the full end-to-end security model of the Kingsila Cloud Platform.
+It covers identity, governance, network boundaries, secrets lifecycle, continuous scanning, and naming standards across all environments (dev, test, prod).
 
-Last updated: **2025-12-10**
+The philosophy is simple:
 
----
-
-# 1. Platform Structure & Security Boundaries
-
-The platform is split into **two Terraform layers**, each with its own scope and security responsibilities.
-
-## 1.1 Root Layer (`infra/`)
-**Purpose:** Subscription-wide governance.
-
-Contains:
-- Azure Policy assignments
-- Defender for Cloud baseline
-- Tag enforcement
-- Allowed regions
-- Deny public endpoint guardrails
-
-Does **not** contain:
-- Resource groups
-- VNets
-- Key Vaults for workloads
-- App Services
-- Any workload resources
-
-This layer defines *what is allowed* globally and enforces compliance.
-
-## 1.2 Environment Layers (`infra/envs/dev|test|prod`)
-**Purpose:** Deploy workload resources for each isolated environment.
-
-Each environment owns:
-- Its own Resource Group
-- Its own VNet + Subnets + NSGs
-- Its own App Service Plan + App Service
-- Its own identity bindings
-- Its own App Configuration (via Key Vault references)
-
-All environments **consume secrets from a single central Key Vault** (platform layer).
+**Secure-by-default. Enforce-by-policy. Automate-everything.**
 
 ---
 
-# 2. Centralised Key Vault Model
+## 1. Identity & Access Control
 
-The platform contains **one Key Vault**:
+### 1.1 GitHub → Azure Authentication (OIDC)
+The platform uses GitHub Actions **OpenID Connect (OIDC)**.
+No client secrets, no SP credentials, no long-lived tokens.
 
+Flow:
+1. GitHub job requests federated token
+2. Azure AD validates the claims
+3. Short-lived access token issued
+4. CI jobs authenticate without secrets
 
+**Benefits:** Zero secret exposure, ephemeral credentials, minimal blast radius.
 
-It stores all environment secrets:
+---
 
-| Secret Name                  | Used By |
-|------------------------------|---------|
-| `dev-connection-string`      | dev app |
-| `test-connection-string`     | test app |
-| `prod-connection-string`     | prod app |
+### 1.2 CI Workload Identity Permissions
+The CI identity is granted the minimum necessary RBAC permissions:
 
-### Why this model?
-- Secrets are in **one immutable, non-destroyable** location.
-- Environments can be destroyed/recreated without touching secrets.
-- RBAC is centrally applied.
-- CI/CD only needs access to one vault.
+- Contributor (restricted scope)
+- Key Vault Secrets Officer (secret writes)
+- Resource Policy Contributor (policy assignments)
+- User Access Administrator (only where required)
 
-### 2.1 App Service → Key Vault Reference
-Each environment uses:
+UID-based, not SAS or static keys.
+
+---
+
+### 1.3 Application Identity (UAMI)
+Apps (App Service, Functions, etc.) use **User-Assigned Managed Identity**.
+
+Assigned roles:
+- Key Vault Secrets User
+- App-specific roles only
+
+Apps retrieve secrets via Key Vault reference — no secrets stored in code or App Settings.
+
+---
+
+## 2. Secrets Lifecycle
+
+### 2.1 Where Secrets Live
+Secrets exist in two places:
+
+- **GitHub Encrypted Secrets** → Source of truth for environment-specific values
+- **Azure Key Vault** → Runtime secret store for applications
+
+Nothing sensitive lives in Terraform state or code.
+
+---
+
+### 2.2 CI Secret Provisioning Flow
+1. Pipeline retrieves secret from GitHub (e.g., `DEV_DB_CONNECTION_STRING`)
+2. Authenticates to Azure via OIDC
+3. Writes the secret to the environment Key Vault
+4. Terraform references it via Key Vault reference:
+   `@Microsoft.KeyVault(SecretUri=...)`
+
+This provides:
+- Auditable changes
+- Automatic secret rotation
+- Zero plaintext exposure
+
+---
+
+### 2.3 Key Vault RBAC Model
+Key Vaults use **RBAC-only mode**:
 
 ```hcl
-ConnectionStrings__Db = "@Microsoft.KeyVault(SecretUri=https://kv-kingsila-platform.vault.azure.net/secrets/${var.tags.environment}-connection-string/)"
+rbac_authorization_enabled = true
