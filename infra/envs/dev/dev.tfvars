@@ -3,7 +3,7 @@
 # ----------------------------
 
 environment       = "dev"
-allowed_locations = ["southafricanorth", "southafricawest"]
+allowed_locations = ["southafricanorth", "southafricawest", "global"]
 
 location = "southafricanorth"
 
