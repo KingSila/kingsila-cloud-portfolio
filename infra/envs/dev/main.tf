@@ -1,11 +1,14 @@
 #############################################
 # DEV ENV – EPHEMERAL INFRASTRUCTURE ONLY
-# Platform services (KV, RBAC, identities)
+# Platform services (KV, RBAC, identities, VNet)
 # are managed in infra/envs/platform
 #############################################
 
 data "azurerm_client_config" "current" {}
 
+#######################################################
+# 0. Policy: Allowed Locations for this environment
+#######################################################
 
 module "policy_definition_allowed_locations" {
   source = "../../modules/policy_definition_allowed_locations"
@@ -41,7 +44,7 @@ module "policy_allowed_locations_assignment" {
 }
 
 #######################################################
-# 1. Resource Group (ephemeral)
+# 1. Resource Group (ephemeral dev RG)
 #######################################################
 
 resource "azurerm_resource_group" "rg" {
@@ -95,4 +98,54 @@ module "app_service_dev" {
   # Key Vault integration
   key_vault_uri            = data.azurerm_key_vault.central.vault_uri
   connection_string_secret = var.connection_string_secret_name
+}
+
+#######################################################
+# 5. Lookup Platform VNet + AKS Subnet (from platform env)
+#######################################################
+
+data "azurerm_virtual_network" "platform" {
+  name                = "vnet-kingsila-platform"
+  resource_group_name = "rg-kingsila-platform"
+}
+
+data "azurerm_subnet" "aks" {
+  name                 = "snet-aks-dev"
+  virtual_network_name = data.azurerm_virtual_network.platform.name
+  resource_group_name  = data.azurerm_virtual_network.platform.resource_group_name
+}
+
+#######################################################
+# 6. AKS Cluster (small, private, in dev RG)
+#######################################################
+
+module "aks" {
+  source = "../../modules/aks"
+
+  name = "aks-kingsila-${var.environment}"
+
+  # AKS lives in the existing dev RG
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  dns_prefix         = "kingsila-${var.environment}"
+  kubernetes_version = var.kubernetes_version
+
+  # Subnet lives in the PLATFORM RG – looked up via data source
+  aks_subnet_id = data.azurerm_subnet.aks.id
+
+
+
+  # Control plane Free tier for dev
+  sku_tier = "Free"
+
+  enable_azure_rbac         = true
+  private_cluster_enabled   = true
+  workload_identity_enabled = true
+
+  tags = {
+    environment = var.environment
+    project     = "cloud-native-portfolio"
+    owner       = "kingsila"
+  }
 }

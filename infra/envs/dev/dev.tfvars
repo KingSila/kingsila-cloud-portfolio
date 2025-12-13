@@ -3,18 +3,19 @@
 # ----------------------------
 
 environment       = "dev"
-allowed_locations = ["southafricanorth", "southafricawest"]
+allowed_locations = ["southafricanorth", "southafricawest", "global"]
 
 location = "southafricanorth"
 
-# Network
-vnet_cidr = "10.10.0.0/16"
 
 # App Service SKU (if used in your module)
 app_sku = "B1"
 
-# Tags
+
+kubernetes_version = "1.34.0"
+
 tags = {
-  owner       = "kingsila"
   environment = "dev"
+  project     = "cloud-native-portfolio"
+  owner       = "kingsila"
 }
