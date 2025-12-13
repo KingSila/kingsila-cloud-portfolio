@@ -1,10 +1,65 @@
 # 1) Platform resource group (never destroyed)
+# Platform Resource Group
+############################################################
+
 resource "azurerm_resource_group" "platform" {
   name     = "rg-kingsila-platform"
   location = var.location
-  tags = merge(var.tags, {
-    environment = "platform"
-  })
+
+  tags = merge(
+    {
+      environment = var.environment
+    },
+    var.tags,
+  )
+}
+
+############################################################
+# Platform VNet (lives in platform RG)
+############################################################
+
+resource "azurerm_virtual_network" "platform" {
+  name                = "vnet-kingsila-platform"
+  location            = azurerm_resource_group.platform.location
+  resource_group_name = azurerm_resource_group.platform.name
+
+  # Big address space for all shared stuff (AKS, maybe others later)
+  address_space = [var.platform_vnet_address_space]
+
+  tags = merge(
+    {
+      environment = var.environment
+    },
+    var.tags,
+  )
+}
+
+
+############################################################
+# AKS Subnets (dev / test / prod)
+############################################################
+
+resource "azurerm_subnet" "aks_dev" {
+  name                 = var.aks_dev_subnet_name
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.platform.name
+  address_prefixes     = [var.aks_dev_subnet_prefix]
+
+  # if you later use Azure CNI powered by Cilium / UDRs etc, we can tweak here
+}
+
+resource "azurerm_subnet" "aks_test" {
+  name                 = var.aks_test_subnet_name
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.platform.name
+  address_prefixes     = [var.aks_test_subnet_prefix]
+}
+
+resource "azurerm_subnet" "aks_prod" {
+  name                 = var.aks_prod_subnet_name
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.platform.name
+  address_prefixes     = [var.aks_prod_subnet_prefix]
 }
 
 # 2) Central Key Vault

@@ -1,12 +1,38 @@
+############################################################
+# Core Environment
+############################################################
+
+variable "environment" {
+  type        = string
+  description = "Environment name (dev/test/prod)."
+}
+
 variable "location" {
   type        = string
   description = "Azure region for the dev environment."
 }
 
+############################################################
+# Tags
+############################################################
+
 variable "tags" {
   type        = map(string)
-  description = "Base tags for dev resources (owner, environment)."
+  description = "Base tags for dev resources (must include owner and environment)."
 }
+
+############################################################
+# Governance / Policy
+############################################################
+
+variable "allowed_locations" {
+  type        = list(string)
+  description = "List of allowed regions for this environment."
+}
+
+############################################################
+# App Service / Application
+############################################################
 
 variable "app_name" {
   type        = string
@@ -14,29 +40,41 @@ variable "app_name" {
   default     = "kingsila-app-dev"
 }
 
-variable "vnet_cidr" {
+variable "app_sku" {
   type        = string
-  description = "CIDR range for the dev VNet."
+  description = "App Service Plan SKU for dev."
+  default     = "B1"
 }
 
 variable "connection_string_secret_name" {
   type        = string
-  description = "Name of the secret in the platform Key Vault."
+  description = "Name of the secret in the platform Key Vault that holds the app connection string."
   default     = "dev-connection-string"
 }
 
-variable "app_sku" {
+############################################################
+# AKS Cluster
+############################################################
+
+variable "kubernetes_version" {
   type        = string
-  description = "App Service Plan SKU for dev"
-  default     = "B1"
+  description = "AKS Kubernetes version."
 }
 
-variable "environment" {
+variable "node_pool_vm_size" {
   type        = string
-  description = "Environment name (dev/test/prod)"
+  description = "VM size for the AKS node pool."
+  default     = "Standard_B2s"
 }
 
-variable "allowed_locations" {
-  type        = list(string)
-  description = "List of allowed regions for this environment."
+variable "node_pool_node_count" {
+  type        = number
+  description = "Initial node count for the AKS node pool."
+  default     = 2
+}
+
+variable "node_pool_max_pods" {
+  type        = number
+  description = "Maximum pods per node in the AKS node pool."
+  default     = 11
 }
