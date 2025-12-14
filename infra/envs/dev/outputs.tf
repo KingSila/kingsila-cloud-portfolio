@@ -31,3 +31,8 @@ output "aks_subnet_id" {
   description = "AKS subnet ID from platform VNet"
   value       = data.azurerm_subnet.aks.id
 }
+
+output "wi_app_dev_client_id" {
+  description = "Client ID for the dev AKS workload identity"
+  value       = module.wi_app_dev.client_id
+}
