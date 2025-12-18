@@ -31,6 +31,8 @@ resource "azurerm_kubernetes_cluster" "this" {
     upgrade_settings {
       max_surge = "33%"
     }
+
+    tags = var.tags
   }
 
   #############################################
