@@ -149,3 +149,25 @@ module "aks" {
     owner       = "kingsila"
   }
 }
+
+module "wi_app_dev" {
+  source = "../../modules/workload_identity"
+
+  name                = "id-aks-app-dev"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  oidc_issuer_url     = module.aks.oidc_issuer_url
+
+  # This is the K8s service account identity we’re binding to
+  # namespace: app-dev
+  # service account: api-sa
+  subject = "system:serviceaccount:app-dev:api-sa"
+
+  tags = var.tags
+}
+
+resource "azurerm_role_assignment" "wi_app_dev_kv_central_secrets_user" {
+  scope                = data.azurerm_key_vault.central.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.wi_app_dev.principal_id
+}
