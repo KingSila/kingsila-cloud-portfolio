@@ -1,81 +1,88 @@
-# 🔐 Kingsila Cloud Platform – Security Architecture
+# Security Architecture
 
-This document defines the full end-to-end security model of the Kingsila Cloud Platform.
-It covers identity, governance, network boundaries, secrets lifecycle, continuous scanning, and naming standards across all environments (dev, test, prod).
-
-The philosophy is simple:
-
-**Secure-by-default. Enforce-by-policy. Automate-everything.**
+This document describes the security controls implemented across the Kingsila Cloud Platform.
+All environments (dev, test, prod) follow the same security baseline unless otherwise noted.
 
 ---
 
-## 1. Identity & Access Control
+## 1. Azure Policy
 
-### 1.1 GitHub → Azure Authentication (OIDC)
-The platform uses GitHub Actions **OpenID Connect (OIDC)**.
-No client secrets, no SP credentials, no long-lived tokens.
+Azure Policy enforces governance requirements at the subscription level.
+All policies are deployed via Terraform in:
 
-Flow:
-1. GitHub job requests federated token
-2. Azure AD validates the claims
-3. Short-lived access token issued
-4. CI jobs authenticate without secrets
+- `modules/policy_definition_*`
+- `modules/policy_assignment`
+- `infra/envs/<env>/main.tf`
 
-**Benefits:** Zero secret exposure, ephemeral credentials, minimal blast radius.
+### 1.1 Allowed Locations Policy
+**Name:** `allowed-locations-<env>`
+**Purpose:** Restrict resource creation to approved Azure regions.
+**Where defined:**
+`modules/policy_definition_allowed_locations`
 
----
+**How to modify locations:**
+Edit `allowed_locations` in `<env>.tfvars`, then re-apply Terraform.
 
-### 1.2 CI Workload Identity Permissions
-The CI identity is granted the minimum necessary RBAC permissions:
+### 1.2 Require Environment Tag on All Resources
+**Name:** `require-environment-tag`
+**Definition ID:** `871b6d14-10aa-478d-b590-94f262ecfa99`
+**Purpose:** Ensures every resource includes an `environment` tag.
+**Behavior:** Blocks creation of untagged resources, including AKS-managed VMSS.
 
-- Contributor (restricted scope)
-- Key Vault Secrets Officer (secret writes)
-- Resource Policy Contributor (policy assignments)
-- User Access Administrator (only where required)
+### 1.3 Require Owner Tag on All Resources
+**Name:** `require-owner-tag`
+**Definition ID:** `871b6d14-10aa-478d-b590-94f262ecfa99` (same definition reused)
+**Purpose:** Ensures traceability for cloud assets.
 
-UID-based, not SAS or static keys.
-
----
-
-### 1.3 Application Identity (UAMI)
-Apps (App Service, Functions, etc.) use **User-Assigned Managed Identity**.
-
-Assigned roles:
-- Key Vault Secrets User
-- App-specific roles only
-
-Apps retrieve secrets via Key Vault reference — no secrets stored in code or App Settings.
+### 1.4 Deny Public Storage Accounts
+**Name:** `deny-public-storage`
+**Purpose:** Prevent exposure of blob containers and storage accounts to public networks.
+**Notes:** Requires a managed identity for the policy assignment (Modify effect).
 
 ---
 
-## 2. Secrets Lifecycle
+## 2. Identity & Access
 
-### 2.1 Where Secrets Live
-Secrets exist in two places:
+### 2.1 Workload Identity (AKS)
+AKS uses Azure AD Workload Identity to issue tokens to pods.
+Components:
 
-- **GitHub Encrypted Secrets** → Source of truth for environment-specific values
-- **Azure Key Vault** → Runtime secret store for applications
+- Federated identity in Azure AD
+- User-assigned Managed Identity for the AKS workload
+- Terraform module: `modules/workload_identity`
 
-Nothing sensitive lives in Terraform state or code.
+### 2.2 Key Vault Access
+Access to Key Vault is controlled with RBAC roles:
 
----
-
-### 2.2 CI Secret Provisioning Flow
-1. Pipeline retrieves secret from GitHub (e.g., `DEV_DB_CONNECTION_STRING`)
-2. Authenticates to Azure via OIDC
-3. Writes the secret to the environment Key Vault
-4. Terraform references it via Key Vault reference:
-   `@Microsoft.KeyVault(SecretUri=...)`
-
-This provides:
-- Auditable changes
-- Automatic secret rotation
-- Zero plaintext exposure
+- `Key Vault Secrets User` for application identities
+- `Key Vault Administrator` only for tightly scoped CI/CD access
+- Terraform creates secret references into App Service and AKS workloads.
 
 ---
 
-### 2.3 Key Vault RBAC Model
-Key Vaults use **RBAC-only mode**:
+## 3. Networking Security
 
-```hcl
-rbac_authorization_enabled = true
+### 3.1 Private Endpoints
+Key Vault and AKS rely on private endpoints and Private DNS Zones:
+- `privatelink.vaultcore.azure.net`
+- `privatelink.southafricanorth.azmk8s.io`
+
+### 3.2 AKS Network Controls
+- System and user node pools deployed to dedicated subnets
+- No public IP exposure
+- NSGs enforce inbound/outbound rules according to shared baseline
+
+---
+
+## 4. Data Protection
+
+- Key Vault uses soft delete and purge protection
+- No storage account without private endpoints (enforced via policy)
+
+---
+
+## 5. Monitoring & Defender
+
+- Defender for Cloud enabled for Containers, App Services, Storage
+- Container Insights enabled for AKS
+- Application Insights linked to Web Apps

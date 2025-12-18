@@ -1,144 +1,110 @@
-# 🏗️ Cloud Platform Architecture Summary
+# Kingsila Cloud Platform – Architecture Overview
 
-## Overview
-
-This project implements a **multi-environment, modular, cloud-native platform** on Azure using Terraform.
-The architecture separates **permanent platform resources** from **ephemeral application environments**, allowing dev/test/prod to be safely recreated while keeping identity, security, and governance stable.
-
-Design principles:
-
-1. **Platform is permanent** – identity, RBAC, secrets, and governance live here.
-2. **Environments are ephemeral** – dev/test/prod can be destroyed and recreated freely.
-3. **Modules are reusable** – ensuring consistent deployments across all environments.
+This document outlines the platform design deployed across dev, test, and prod environments.
 
 ---
 
-## 🔐 Platform Layer (Permanent)
+## 1. High-Level Diagram
 
-The `platform` environment provisions all shared foundational resources.
-
-### Key Components
-
-- **Resource Group:** `rg-kingsila-platform`
-- **Central Key Vault:** `kv-kingsila-platform`
-  - RBAC-enabled (no access policies)
-  - Stores:
-    - `dev-connection-string`
-    - `test-connection-string`
-    - `prod-connection-string`
-- **GitHub OIDC Identity + RBAC**
-  - Azure AD federated identity for CI/CD
-  - Assigned **Key Vault Secrets Officer**
-- **Permanent Managed Identities (optional)**
-  - For shared services or future expansion
-
-### Purpose
-
-Provides a stable, secure foundation for all workloads.
-Centralizes secret management and access control.
+Core components:
+- Virtual Network (per environment)
+- AKS Cluster (per environment)
+- App Service + Plan
+- Key Vault (shared or per environment)
+- Azure Policy enforcement
+- CI/CD via GitHub Actions
+- Monitoring (App Insights / Container Insights)
 
 ---
 
-## 🌱 Application Environments (Ephemeral)
+## 2. Infrastructure Components
 
-Each environment (`dev`, `test`, `prod`) has its own Terraform root module:
+### 2.1 Resource Groups
+Each environment uses:
+- `rg-kingsila-<env>`
+- Managed RG for AKS: `MC_rg-kingsila-<env>_aks-kingsila-<env>_<region>`
 
+### 2.2 Networking
+- VNet: `vnet-kingsila-<env>`
+- Subnets:
+  - `aks-subnet`
+  - `app-subnet`
+  - `private-endpoints-subnet`
+- Private DNS zones linked to the VNet
 
-### Environment Components
+### 2.3 AKS Cluster
+Terraform module: `modules/aks`
 
-- **Resource Group**
-  - Dev: `rg-kingsila-dev`
-  - Test: `rg-kingsila-test`
-  - Prod: `rg-kingsila-prod`
-- **User-Assigned Managed Identity**
-  - Created per environment
-  - Granted Key Vault access by *platform*
-  - Used by App Service at runtime
-- **App Service Plan + Linux Web App**
-  - Deployed using the shared `app_service` module
-  - Identity-enabled
-  - Reads secrets from platform Key Vault (Key Vault reference)
+Key features:
+- Private cluster
+- System + user node pools
+- Node pool tags required for policy compliance
+- Workload identity integration
+- Metrics + logs shipped to Log Analytics
 
-### Terraform State Isolation
+### 2.4 App Service
+Terraform module: `modules/app_service`
 
-Each environment maintains its own remote state file:
+Includes:
+- Linux App Service Plan
+- Web App with UAMI
+- App Insights (optional per env)
+- Key Vault secret references
 
-- `dev/terraform.tfstate`
-- `test/terraform.tfstate`
-- `prod/terraform.tfstate`
+### 2.5 Key Vault
+Terraform module: `modules/keyvault`
 
-### Purpose
-
-Allows rapid environment creation/destruction without affecting the platform or other environments.
-
----
-
-## 🧩 Module Architecture
-
-Reusable modules live in:
-
-
-### `managed_identity_app`
-- Creates a user-assigned managed identity
-- Assigns Key Vault RBAC
-- Outputs identity ID
-
-### `app_service`
-- Creates an App Service Plan
-- Deploys a Linux Web App
-- Assigns UAMI to the app
-- Injects Key Vault secret references into app settings
-
-### Benefits
-
-- Eliminates duplication
-- Ensures consistency
-- Reduces maintenance burden
-- Prevents environment drift
+Purpose:
+- Store secrets per environment
+- Provide central access for workloads via managed identity
 
 ---
 
-## 🚀 CI/CD Workflow
+## 3. Policy Integration
 
-GitHub Actions manages automated deployment for all environments.
+Azure Policy is deployed before any environment to avoid drift.
+Policies enforced:
 
-### Pull Requests
+- Allowed Locations
+- Required Tags
+- Deny Public Storage
+- Environment-specific allowed region definitions
 
-- Runs **terraform plan** for dev/test/prod
-- Validates formatting and module integrity
-
-### Push to `main`
-
-- Runs **plan + apply** for all environments
-- Uses GitHub → Azure OIDC authentication (no secrets stored in CI)
-
-### Manual Deployment
-
-- `workflow_dispatch` supports running any environment directly
-
-### Terraform Steps
-
-- `init`
-- `validate`
-- `plan`
-- `apply`
-
-Secrets are **never deployed from CI**.
-Instead, apps retrieve secrets directly from Key Vault at runtime using their managed identity.
+Policies run at subscription scope and apply automatically to all resources.
 
 ---
 
+## 4. CI/CD Pipeline Architecture
+
+- GitHub Actions validate + plan on PR
+- Main branch auto-applies to each environment
+- tfsec integrated for security scanning
+- Provider caching enabled for faster Terraform runs
+
 ---
 
-## 🎯 Summary
+## 5. Environment Lifecycle
 
-This architecture provides:
+### dev
+- Main testing ground for new modules
+- Lower SKU resources
+- App Insights used for validation
 
-- Strong centralized security (Key Vault + RBAC)
-- Zero credentials in CI/CD (OIDC-based auth)
-- Full environment isolation
-- Safe destroy/recreate workflows
-- Consistency through reusable modules
-- Predictable and stable deployments
+### test
+- Mirrors prod for stability checks
+- Policies identical to prod
+- Performance tests target this environment
 
-It forms a clean, scalable foundation for growing the platform over time.
+### prod
+- Fully locked-down
+- Highest policy enforcement
+- Strict tagging
+- Workload identity required for all workloads
+
+---
+
+## 6. Future Enhancements (Roadmap)
+- Ingress controller with AGIC or NGINX
+- Internal load balancer for private traffic
+- Centralized secret rotation
+- Baseline landing zone modules
