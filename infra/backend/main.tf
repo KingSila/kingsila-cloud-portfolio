@@ -38,6 +38,7 @@ resource "azurerm_storage_account" "tfstate" {
     versioning_enabled = true
   }
 
+
   tags = {
     purpose    = "terraform-state"
     managed_by = "terraform"

@@ -12,6 +12,8 @@ resource "azurerm_key_vault" "this" {
   soft_delete_retention_days = 7
   purge_protection_enabled   = true
 
+  public_network_access_enabled = false
+
   # 🔐 Network ACLs – central hardening
   network_acls {
     default_action = "Deny"

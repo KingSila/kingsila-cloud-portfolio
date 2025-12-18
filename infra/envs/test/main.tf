@@ -74,3 +74,76 @@ module "app_service_test" {
   key_vault_uri            = data.azurerm_key_vault.central.vault_uri
   connection_string_secret = var.connection_string_secret_name
 }
+
+
+#######################################################
+# 5. Lookup Platform VNet + AKS Subnet (from platform env)
+#######################################################
+
+data "azurerm_virtual_network" "platform" {
+  name                = "vnet-kingsila-platform"
+  resource_group_name = "rg-kingsila-platform"
+}
+
+data "azurerm_subnet" "aks" {
+  name                 = "snet-aks-test"
+  virtual_network_name = data.azurerm_virtual_network.platform.name
+  resource_group_name  = data.azurerm_virtual_network.platform.resource_group_name
+}
+
+#######################################################
+# 6. AKS Cluster (small, private, in dev RG)
+#######################################################
+
+module "aks" {
+  source = "../../modules/aks"
+
+  name = "aks-kingsila-${var.environment}"
+
+  # AKS lives in the existing dev RG
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  dns_prefix         = "kingsila-${var.environment}"
+  kubernetes_version = var.kubernetes_version
+
+  # Subnet lives in the PLATFORM RG – looked up via data source
+  aks_subnet_id = data.azurerm_subnet.aks.id
+
+
+
+  # Control plane Free tier for dev
+  sku_tier = "Free"
+
+  enable_azure_rbac         = true
+  private_cluster_enabled   = true
+  workload_identity_enabled = true
+
+  tags = {
+    environment = var.environment
+    project     = "cloud-native-portfolio"
+    owner       = "kingsila"
+  }
+}
+
+module "wi_app_test" {
+  source = "../../modules/workload_identity"
+
+  name                = "id-aks-app-test"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  oidc_issuer_url     = module.aks.oidc_issuer_url
+
+  # This is the K8s service account identity we’re binding to
+  # namespace: app-test
+  # service account: api-sa
+  subject = "system:serviceaccount:app-test:api-sa"
+
+  tags = var.tags
+}
+
+resource "azurerm_role_assignment" "wi_app_test_kv_central_secrets_user" {
+  scope                = data.azurerm_key_vault.central.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.wi_app_test.principal_id
+}
