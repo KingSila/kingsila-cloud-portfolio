@@ -1,19 +1,11 @@
-# 📊 Project Progress Tracker (Aligned to Real Work – 2025-12-11)
+# 📊 Project Progress Overview (Updated 2025-12-18)
 
-## 🎯 Overall Project Progress
-**Current Progress:** **65%**
-*(Previously ~60%, increased after finalising tag policies, Checkov scanning, and destroy workflow fixes.)*
+## 🎯 Overall Progress
+**Current Progress:** **70% Complete**
+*(Previously ~65%; increased after completing Week 5–6 guardrails and starting Week 7–8 tasks.)*
 
-Your actual engineering work is far ahead of the original linear curriculum, especially in:
-- identity + Key Vault patterns
-- RBAC cleanup
-- tfsec + Checkov security scanning
-- policy-as-code modules
-- environment stability
-- secret automation end-to-end
-- App Service integration + telemetry
-
-Those are *major milestone items* normally spread across Weeks 2–8.
+Your platform is now past the two-thirds mark, with governance, identity, policies, and CI/CD fully stabilised across dev/test/prod.
+The remaining work focuses on AKS platform features, observability, and documentation polish.
 
 ---
 
@@ -21,51 +13,76 @@ Those are *major milestone items* normally spread across Weeks 2–8.
 
 ### ✅ Weeks 1–2: CI/CD & IaC Foundations
 **Status:** 100% Complete
-You over-delivered here, including secret automation, telemetry plumbing, stable CI, etc.
+- Automated Terraform CI/CD with OIDC
+- Multi-environment GitHub Actions pipeline
+- Secret flow wired end-to-end
+- App Service + Insights telemetry validated
+- Fully stable plan/apply lifecycle
 
 ### ✅ Weeks 3–4: Multi-Environment Governance
 **Status:** 100% Complete
-You’re beyond the original scope — RBAC, identity flows, central KV strategy all done.
+- Terraform environment architecture complete
+- RBAC + identity flows stabilised
+- Central Key Vault implemented
+- No environment drift
+- Governance and lifecycle workflows established
 
-### 🛡️ Weeks 5–6: Security & Guardrails
-**Status:** 85% Complete
+### 🛡️ Weeks 5–6: Security, Guardrails & Compliance
+**Status:** 100% Complete
+- Azure Policy-as-Code fully deployed (dev/test/prod)
+- Deny public endpoints + allowed locations policies
+- Tag enforcement (owner/environment)
+- Defender baseline enabled
+- tfsec + Checkov scanning integrated
+- Hardened Key Vault ACLs (tfsec CRITICAL resolved)
+- Security architecture documented
+- Destroy workflows and backend config stabilised
+- Verified no leftover Defender state issues
 
-You’ve completed:
+### ☸️ Weeks 7–8: AKS Platform Layer
+**Status:** ~15% In Progress
 
-- Azure Policy-as-Code (allowed locations, SKU restrictions)
-- Policy assignment module
-- Defender baseline
-- Key Vault centralisation & identity
-- tfsec scanning (non-blocking action + blocking CLI)
-- Checkov scanning with working SARIF output
-- Tag enforcement policies (require owner/environment tags)
-- Secret lifecycle automation end-to-end
-- App Service / Key Vault / telemetry integration validated
-- Destroy pipeline YAML + env-specific backend usage
-- Harden Key Vault `network_acls` to silence tfsec CRITIC
-- Add “deny public endpoints” policies
+New progress (via GitHub Kanban):
+- [x] Added outputs to AKS module (cluster name, node RG, OIDC URL)
+- [x] Created dev Kubernetes manifests (namespace, SA, Deployment)
+- [ ] Test workload identity end-to-end
+- [ ] Configure NGINX ingress baseline in dev
+- [ ] Prepare test environment AKS deployment pipeline
 
-**Remaining small items:**
+Remaining:
+- AKS module enhancements
+- Helm golden chart
+- Runtime documentation (`/docs/platform-runtime.md`)
 
-- Document full security architecture (`/docs/security.md`)
-### ⏭️ Weeks 7–8: AKS Platform Layer
-**Status:** 0% (Not Started)
-No changes — this work comes after security guardrails.
+### 🔭 Weeks 9–10: Observability & SRE
+**Status:** 0% Not Started
+Planned: dashboards, HPA, alerting, tracing, SLOs.
 
-### ☸️ Weeks 9–10: Observability & SRE
-**Status:** 0% (Not Started)
-
-### 🎨 Weeks 11–12: Packaging & Career Prep
-**Status:** 0% (Not Started)
+### 🎨 Weeks 11–12: Platform Packaging & Career Positioning
+**Status:** 0% Not Started
+Planned: diagrams, README platform overview, presentation, promotion narrative, CV updates.
 
 ---
 
-## 📌 Why Progress ≈ 65%?
+## 📌 Summary Snapshot
+### ✔ Completed to date
+- CI/CD, governance, RBAC, identity
+- Azure Policy-as-Code + tagging enforcement
+- App Service + KV integration
+- Security scanning
+- Full infra stabilisation across environments
 
-With the tracker realigned:
+### 🚀 Actively in progress
+- AKS workload identity tests
+- Dev ingress baseline
+- AKS deployment pipeline for test
 
-- Weeks 1–4 = **100% complete**
-- Weeks 5–6 ≈ **85% complete**
-- Weeks 7–12 = **0% complete**
+### 🔜 Next milestones
+- Helm golden chart
+- Ingress + certs
+- Observability stack
+- Production-ready AKS rollout
 
-Security & governance are now in the “final 15% polish” zone: mostly policies, docs, and one Key Vault hardening change. The heavy lifting is already in the rear-view mirror.
+---
+
+**You are now officially 70% through the full 12-week platform engineering program.**
