@@ -27,3 +27,8 @@ output "resource_group_name" {
   description = "Resource group where the AKS cluster lives"
   value       = azurerm_kubernetes_cluster.this.resource_group_name
 }
+
+output "node_resource_group" {
+  description = "The managed resource group created by AKS for node pool and system resources"
+  value       = azurerm_kubernetes_cluster.this.node_resource_group
+}
