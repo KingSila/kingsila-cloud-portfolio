@@ -1,14 +1,14 @@
-# Test Environment Configuration
-
 environment       = "test"
 allowed_locations = ["southafricanorth", "southafricawest"]
-location          = "southafricanorth"
 
-vnet_cidr = "10.20.0.0/16"
+location = "southafricanorth"
 
 app_sku = "B1"
 
+kubernetes_version = "1.34.0"
+
 tags = {
-  owner       = "kingsila"
   environment = "test"
+  project     = "cloud-native-portfolio"
+  owner       = "kingsila"
 }
