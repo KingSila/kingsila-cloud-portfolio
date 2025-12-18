@@ -100,7 +100,7 @@ module "aks" {
 
   name = "aks-kingsila-${var.environment}"
 
-  # AKS lives in the existing dev RG
+  # AKS lives in the existing test RG
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 

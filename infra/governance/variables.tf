@@ -21,5 +21,9 @@ variable "github_actions_sp_object_id" {
 variable "allowed_locations" {
   type        = list(string)
   description = "List of allowed Azure locations for policy."
-  default     = ["South Africa North", "South Africa West"]
+  default = [
+    "South Africa North",
+    "South Africa West",
+    "global"
+  ]
 }
