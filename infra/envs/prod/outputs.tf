@@ -12,3 +12,8 @@ output "identity_id" {
   description = "User-assigned identity ID used by the prod app."
   value       = module.mi_app_prod.identity_id
 }
+
+output "node_resource_group_name" {
+  description = "AKS node resource group name"
+  value       = module.aks.node_resource_group
+}
