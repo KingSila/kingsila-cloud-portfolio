@@ -17,9 +17,9 @@ output "identity_id" {
 # 7. Optional Outputs (handy for debugging)
 #######################################################
 
-output "dev_resource_group_name" {
-  description = "Dev resource group name"
-  value       = azurerm_resource_group.rg.name
+output "node_resource_group_name" {
+  description = "AKS node resource group name"
+  value       = module.aks.node_resource_group
 }
 
 output "aks_cluster_name" {
