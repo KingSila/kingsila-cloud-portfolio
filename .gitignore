@@ -69,3 +69,6 @@ playground/
 
 .fake
 infra/governance/terraform.tfvars
+
+# Node.js dependencies
+node_modules/
