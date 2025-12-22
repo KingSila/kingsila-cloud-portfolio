@@ -1,19 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: app-ingress
-  namespace: dev
+  name: app
   annotations:
-    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
-    - host: dev.kingsila.local   # adjust to whatever DNS you’ll actually use
+    - host: __HOST__
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: app-service
+                name: app-svc
                 port:
                   number: 80
