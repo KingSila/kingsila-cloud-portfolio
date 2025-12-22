@@ -5,6 +5,7 @@ namespace: test
 
 resources:
   - ../../base
+  - networkpolicy-default-deny.yaml
 
 patches:
   - target:
