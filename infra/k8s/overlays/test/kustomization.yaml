@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: test
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Ingress
+      name: app
+    path: patch-ingress-host.yaml
+  - target:
+      kind: Deployment
+      name: app
+    path: patch-app-echo.yaml
+
+  # Optional: only if you want to store the WI client id in a private overlay repo.
+  # - path: patch-wi-serviceaccount.yaml
