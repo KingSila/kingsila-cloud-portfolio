@@ -13,7 +13,7 @@ resource "azurerm_policy_definition" "allowed_locations" {
   })
 
   parameters = jsonencode({
-    listOfAllowedLocations = {
+    allowed_locations = {
       type = "Array"
       metadata = {
         description = "The list of allowed locations for resources."
@@ -27,7 +27,7 @@ resource "azurerm_policy_definition" "allowed_locations" {
   "if": {
     "not": {
       "field": "location",
-      "in": "[parameters('listOfAllowedLocations')]"
+      "in": "[parameters('allowed_locations')]"
     }
   },
   "then": {
@@ -46,7 +46,7 @@ resource "azurerm_subscription_policy_assignment" "allowed_locations_assign" {
   subscription_id = data.azurerm_subscription.current.id
 
   parameters = jsonencode({
-    listOfAllowedLocations = {
+    allowed_locations = {
       value = var.allowed_locations
     }
   })

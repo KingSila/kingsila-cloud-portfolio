@@ -1,0 +1,125 @@
+name: Deploy AKS (dev/test)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options: [dev, test]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RG_DEV: rg-kingsila-dev
+  AKS_DEV: aks-kingsila-dev
+
+  # If/when test is separate, set these and the workflow will use them.
+  RG_TEST: rg-kingsila-test
+  AKS_TEST: aks-kingsila-test
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Select cluster vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENV="${{ inputs.environment }}"
+
+          if [ "$ENV" = "dev" ]; then
+            echo "RG=${RG_DEV}" >> $GITHUB_ENV
+            echo "AKS=${AKS_DEV}" >> $GITHUB_ENV
+          else
+            # If test is not separate yet, you can temporarily point test to dev
+            # by setting RG_TEST/AKS_TEST equal to dev values above.
+            echo "RG=${RG_TEST}" >> $GITHUB_ENV
+            echo "AKS=${AKS_TEST}" >> $GITHUB_ENV
+          fi
+
+          echo "ENV_NAME=$ENV" >> $GITHUB_ENV
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "latest"
+
+      - name: Build kustomize overlay (runner)
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl kustomize "infra/k8s/overlays/${ENV_NAME}" > /tmp/manifests.yaml
+          echo "Built manifests:"
+          head -n 50 /tmp/manifests.yaml
+
+      - name: Apply manifests via AKS Run Command (private cluster safe)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl apply -f -" \
+            --file /tmp/manifests.yaml
+
+      - name: Patch ServiceAccount WI client-id (dev only)
+        if: ${{ inputs.environment == 'dev' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WI_CLIENT_ID="${{ secrets.WI_APP_DEV_CLIENT_ID }}"
+
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl -n dev annotate sa app-sa azure.workload.identity/client-id=${WI_CLIENT_ID} --overwrite"
+
+      - name: Wait for rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl -n ${ENV_NAME} rollout status deploy/app --timeout=240s"
+
+      - name: Smoke test (in-cluster curl via ingress)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="app.${ENV_NAME}.local"
+          EXPECT="hello-from-${ENV_NAME}-via-ingress"
+
+          OUT="$(az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl -n ${ENV_NAME} run curl --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+              sh -lc \"curl -sS -D- -H 'Host: ${HOST}' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
+
+          echo "$OUT" | tail -n 50
+          echo "$OUT" | grep -q "$EXPECT"
+
+
+      - name: Debug dump on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl get pods -A -o wide"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get all"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} describe deploy app"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200"

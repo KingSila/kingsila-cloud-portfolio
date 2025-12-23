@@ -1,76 +1,148 @@
-# 12-Week Platform Engineering Tracker
+# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-18)
 **Azure · Terraform · GitHub Actions · AKS · SRE**
 
 ---
 
-## ✅ Weeks 1–2: Platform CI/CD & IaC Foundations (COMPLETED)
+## ✅ Weeks 1–2: Platform CI/CD & IaC Foundations
+**Status: 100% Complete**
 
-- [x] Standardised GitHub Actions workflow for Terraform
-- [x] Implemented OIDC authentication with Azure
-- [x] Created reusable CI pipeline templates
-- [x] Fixed artifact upload & naming issues
-- [x] Set up GitHub Environments (dev/test/prod/destroy)
-- [x] Added branch protection for `main`
-- [x] Enabled pre-commit (fmt, validate, tflint, markdown lint)
-- [x] Added environment lifecycle scripts + VS Code tasks
-- [x] Documented CI/CD (`/docs/cicd.md`)
-- [x] Added drift detection scaffolding
-
----
-
-## ✅ Weeks 3–4: IaC Governance & Multi-Env Foundations (COMPLETED)
-
-- [x] Refactored Terraform environments with stable backend keys
-- [x] Fixed `for_each` list/map issues
-- [x] Integrated remote state for dev/test/prod
-- [x] Created reusable network/resource modules
-- [x] Added destroy protections + approval workflow
-- [x] Introduced tagging & cost governance groundwork
-- [x] Added management groups + RBAC scaffolding
-- [x] Solved state/drift issues across environments
-- [x] Finalised Platform Environment Lifecycle workflow
+Achievements:
+- Standardised GitHub Actions workflow for Terraform
+- Implemented OIDC authentication with Azure
+- Reusable CI pipeline templates
+- Artifact upload & naming fixes
+- GitHub Environments for dev/test/prod/destroy
+- Branch protection on `main`
+- Pre-commit hooks (fmt, validate, tflint, md-lint)
+- Environment lifecycle tooling + VS Code tasks
+- CI/CD documentation (`/docs/cicd.md`)
+- Drift detection scaffolding
+- End-to-end stable plan/apply workflow
+- Secret flow: GitHub → Terraform → Key Vault
+- App Service + Insights + telemetry validation
 
 ---
 
-## Weeks 5–6: Security, Compliance & Platform Guardrails
+## ✅ Weeks 3–4: IaC Governance & Multi-Environment Foundations
+**Status: 100% Complete**
 
-- [~] Finalise Azure Policy as Code (allowed locations/SKU/naming)
-- [ ] Create policy-assignment Terraform module
-- [ ] Enable Defender for Cloud baseline
-- [ ] Centralise Key Vault + workload identities (OIDC / MI)
-- [ ] Add tfsec / checkov scanning to CI
-- [ ] Document security architecture (`/docs/security.md`)
-
----
-
-## Weeks 7–8: App Platform Layer — AKS & Deployment Standards
-
-- [ ] Create AKS Terraform module (node pools, identity, logging)
-- [ ] Deploy AKS to dev + integrate with existing VNet
-- [ ] Build base Helm chart template (golden chart)
-- [ ] Build GitHub Actions pipeline for app → AKS deployment
-- [ ] Implement ingress, certs & workload identity
-- [ ] Document golden deployment pattern (`/docs/platform-runtime.md`)
+Achievements:
+- Stable backend keys for all environments
+- Fixed `for_each` structure issues
+- Remote state for dev/test/prod
+- Reusable modules (networking, keyvault, policy)
+- Destroy protections + approvals
+- Tagging & cost governance groundwork
+- Management groups + RBAC scaffolding
+- Resolved drift issues
+- Finalised environment lifecycle model
+- Central Key Vault pattern implemented
+- RBAC for CI (management + data plane)
+- App Service Key Vault references completed
 
 ---
 
-## Weeks 9–10: Observability, SRE & Platform Reliability
+## 🛡️ Weeks 5–6: Security, Compliance & Guardrails
+**Status: 100% Complete**
 
-- [ ] Add metrics/logs/tracing for AKS + apps
-- [ ] Create platform dashboards (Grafana / App Insights / Log Analytics)
-- [ ] Implement HPA + probes + PDBs
-- [ ] Add alert rules (cluster + deployments)
-- [ ] Define simple SLOs
-- [ ] Document reliability standards (`/docs/sre.md`)
+Completed:
+- Azure Policy-as-Code (allowed locations, SKU restrictions)
+- Reusable policy-assignment module
+- Defender for Cloud baseline enabled
+- Workload identity pattern across environments
+- tfsec scanning (non-blocking + blocking modes)
+- Checkov scanning with SARIF export
+- Tag enforcement (owner/environment)
+- Secret provisioning stabilised (dev/test/prod)
+- App Service + KV + telemetry integration validated
+- Destroy pipeline with env-specific backend config
+- Hardened Key Vault `network_acls` (tfsec CRITICAL resolved)
+- Added “deny public endpoints” policies
+- Security architecture documentation drafted (`/docs/security.md`)
+- Defender leftover state validated
 
 ---
 
-## Weeks 11–12: Platform Packaging & Career Positioning
+## ☸️ Weeks 7–8: AKS Platform Layer — Foundations Started
+**Status: ~15% Complete**
 
-- [ ] Create architecture diagrams (Hub-Spoke + AKS + CI/CD)
-- [ ] Write Platform Overview in README
-- [ ] Prepare 10-minute internal presentation
-- [ ] Draft promotion narrative
-- [ ] Update CV with platform achievements
-- [ ] Optional: Publish tech article
-- [ ] Optional: Record walkthrough demo
+### New Progress (from GitHub Kanban)
+- [x] Added outputs to AKS module (cluster name, node RG, OIDC URL)
+- [x] Created dev Kubernetes manifests (namespace, SA, Deployment)
+- [ ] Test workload identity end-to-end in AKS
+- [ ] Configure NGINX ingress baseline for dev
+- [ ] Prepare test environment AKS deployment pipeline
+
+### Remaining for Weeks 7–8
+- AKS module enhancements (node pools, logging, metrics)
+- Build base Helm “golden chart”
+- Implement ingress & workload identity wiring across environments
+- Document deployment standards (`/docs/platform-runtime.md`)
+
+---
+
+## 🔭 Weeks 9–10: Observability, SRE & Reliability
+**Status: 0% (Not Started)**
+
+Planned:
+- Metrics/logs/tracing for AKS + workloads
+- Grafana / App Insights dashboards
+- HPA, readiness/liveness probes, PDBs
+- Alert rules for cluster + apps
+- SLO definitions
+- Reliability docs (`/docs/sre.md`)
+
+---
+
+## 🎨 Weeks 11–12: Platform Packaging & Career Positioning
+**Status: 0% (Not Started)**
+
+Planned:
+- Architecture diagrams (Hub-Spoke + AKS + CI/CD)
+- Platform Overview in README
+- 10-minute internal presentation
+- Promotion narrative
+- CV updates
+- Optional: publish article + record walkthrough
+
+---
+
+# 📊 Overall Progress
+
+**Current Progress:** **70%**
+(up from ~65% after completing all Week 5–6 items and starting Weeks 7–8)
+
+### Breakdown:
+- Weeks 1–4 → **100%**
+- Weeks 5–6 → **100%**
+- Weeks 7–8 → **~15% in progress**
+- Weeks 9–12 → **0%**
+
+---
+
+# 📌 Snapshot Summary
+
+### ✔ Completed to date
+- CI/CD automation
+- Multi-env Terraform architecture
+- Azure identity + Key Vault patterns
+- Azure Policy-as-Code
+- Security scanning (tfsec + Checkov)
+- App Service + Insights + KV integration
+- Full governance & security baseline
+
+### 🚀 In Progress (Weeks 7–8)
+- AKS workload identity test path
+- AKS module outputs
+- Dev Kubernetes manifests
+- Ingress work starting
+- Test env AKS pipeline preparation
+
+### 🔜 Coming Next
+- Helm golden chart
+- Production-ready ingress
+- AKS app pipeline
+- Observability + dashboards
+- Reliability patterns
+
+---

@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.51.0"
+      version = "~> 4.52.0"
     }
   }
 }
@@ -15,7 +15,7 @@ provider "azurerm" {
 
 # Resource Group for Terraform State
 resource "azurerm_resource_group" "tfstate" {
-  name     = "tfstate-rg"
+  name     = "rg-tfstate"
   location = "South Africa North"
 
   tags = {
@@ -37,6 +37,7 @@ resource "azurerm_storage_account" "tfstate" {
   blob_properties {
     versioning_enabled = true
   }
+
 
   tags = {
     purpose    = "terraform-state"

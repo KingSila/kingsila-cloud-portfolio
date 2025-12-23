@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dev
+
+resources:
+  - ../../base
+  - networkpolicy-default-deny.yaml
+
+patches:
+  - target:
+      kind: Ingress
+      name: app
+    path: patch-ingress-host.yaml
+  - target:
+      kind: Deployment
+      name: app
+    path: patch-app-echo.yaml
