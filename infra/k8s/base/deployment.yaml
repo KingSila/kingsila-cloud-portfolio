@@ -38,3 +38,22 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
+
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "250m"
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsUser: 1001
+              runAsNonRoot: true
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+              seccompProfile:
+                type: RuntimeDefault

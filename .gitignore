@@ -74,3 +74,4 @@ infra/governance/terraform.tfvars
 node_modules/
 infra/k8s/dev/03-wi-test-pod.local.yaml
 infra/k8s/dev/03-wi-test-pod.yaml
+infra/k8s/dev-rbac.yaml
