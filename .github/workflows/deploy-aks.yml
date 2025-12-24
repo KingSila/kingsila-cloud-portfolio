@@ -84,7 +84,6 @@ jobs:
             --file "infra/k8s/system/install-ingress-nginx.sh" \
             --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
 
-
       - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |

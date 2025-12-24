@@ -13,6 +13,10 @@ patches:
       name: app-sa
     path: patch-wi-serviceaccount.yaml
   - target:
+      kind: Ingress
+      name: app
+    path: patch-ingress-host.yaml
+  - target:
       kind: Deployment
       name: app
     path: patch-app-echo.yaml
