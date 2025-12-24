@@ -16,8 +16,6 @@ permissions:
 env:
   RG_DEV: rg-kingsila-dev
   AKS_DEV: aks-kingsila-dev
-
-  # If/when test is separate, set these and the workflow will use them.
   RG_TEST: rg-kingsila-test
   AKS_TEST: aks-kingsila-test
 
@@ -42,16 +40,14 @@ jobs:
           ENV="${{ inputs.environment }}"
 
           if [ "$ENV" = "dev" ]; then
-            echo "RG=${RG_DEV}" >> $GITHUB_ENV
-            echo "AKS=${AKS_DEV}" >> $GITHUB_ENV
+            echo "RG=${RG_DEV}" >> "$GITHUB_ENV"
+            echo "AKS=${AKS_DEV}" >> "$GITHUB_ENV"
           else
-            # If test is not separate yet, you can temporarily point test to dev
-            # by setting RG_TEST/AKS_TEST equal to dev values above.
-            echo "RG=${RG_TEST}" >> $GITHUB_ENV
-            echo "AKS=${AKS_TEST}" >> $GITHUB_ENV
+            echo "RG=${RG_TEST}" >> "$GITHUB_ENV"
+            echo "AKS=${AKS_TEST}" >> "$GITHUB_ENV"
           fi
 
-          echo "ENV_NAME=$ENV" >> $GITHUB_ENV
+          echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
@@ -62,9 +58,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          kubectl kustomize "infra/k8s/overlays/${ENV_NAME}" > /tmp/manifests.yaml
-          echo "Built manifests:"
-          head -n 50 /tmp/manifests.yaml
+          OUT_FILE="$RUNNER_TEMP/manifests.yaml"
+
+          kubectl kustomize "infra/k8s/overlays/${ENV_NAME}" > "$OUT_FILE"
+
+          if [ ! -s "$OUT_FILE" ]; then
+            echo "ERROR: Built manifest file is empty: $OUT_FILE"
+            echo "Check overlay path: infra/k8s/overlays/${ENV_NAME}"
+            exit 1
+          fi
+
+          echo "Built manifests (first 50 lines):"
+          head -n 50 "$OUT_FILE"
+
+          echo "MANIFEST_FILE=$OUT_FILE" >> "$GITHUB_ENV"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
@@ -72,20 +79,23 @@ jobs:
         run: |
           set -euo pipefail
           az aks command invoke \
-            -g "${{ env.RG_TEST }}" \
-            -n "${{ env.AKS_TEST }}" \
+            -g "${RG}" \
+            -n "${AKS}" \
             --command "bash -s" \
-            --file infra/k8s/system/install-ingress-nginx.sh
+            --file "infra/k8s/system/install-ingress-nginx.sh"
 
       - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
           set -euo pipefail
+
+          # Upload the built file; AKS Run Command places it in the remote working dir
+          # using the basename (e.g., manifests.yaml). Apply that remote file directly.
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl apply -f -" \
-            --file /tmp/manifests.yaml
+            --file "${MANIFEST_FILE}" \
+            --command "set -euo pipefail; ls -la; test -s manifests.yaml; kubectl apply -f manifests.yaml"
 
       - name: Patch ServiceAccount WI client-id (dev only)
         if: ${{ inputs.environment == 'dev' }}
@@ -123,7 +133,6 @@ jobs:
 
           echo "$OUT" | tail -n 50
           echo "$OUT" | grep -q "$EXPECT"
-
 
       - name: Debug dump on failure
         if: failure()
