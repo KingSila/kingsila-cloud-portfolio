@@ -9,6 +9,10 @@ resources:
 
 patches:
   - target:
+      kind: ServiceAccount
+      name: app-sa
+    path: patch-wi-serviceaccount.yaml
+  - target:
       kind: Ingress
       name: app
     path: patch-ingress-host.yaml
