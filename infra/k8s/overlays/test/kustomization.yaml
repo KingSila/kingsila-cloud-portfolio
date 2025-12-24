@@ -20,6 +20,14 @@ patches:
       kind: Deployment
       name: app
     path: patch-app-echo.yaml
+patchesJson6902:
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: app
+    path: patch-ingress-host.json
+
 
   # Optional: only if you want to store the WI client id in a private overlay repo.
   # - path: patch-wi-serviceaccount.yaml
