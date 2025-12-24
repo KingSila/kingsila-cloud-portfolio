@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-deployer
+  namespace: dev
+rules:
+- apiGroups: [""]
+  resources: ["pods","services","configmaps","secrets","serviceaccounts"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments","replicasets","statefulsets","daemonsets"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses","networkpolicies"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-deployer-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: "3c132652-6e88-4089-9e81-9a8ac2e94590"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dev-deployer
+  apiGroup: rbac.authorization.k8s.io
