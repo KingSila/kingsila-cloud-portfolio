@@ -84,17 +84,6 @@ jobs:
             --command "bash -s" \
             --file "infra/k8s/system/install-ingress-nginx.sh"
 
-      - name: Install NGINX ingress controller (test)
-        if: ${{ inputs.environment == 'test' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          az aks command invoke \
-            -g "${{ env.RG_TEST }}" \
-            -n "${{ env.AKS_TEST }}" \
-            --command "bash -s" \
-            --file infra/k8s/system/install-ingress-nginx.sh
-
       - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
