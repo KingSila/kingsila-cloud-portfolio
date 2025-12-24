@@ -81,8 +81,9 @@ jobs:
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "bash -s" \
-            --file "infra/k8s/system/install-ingress-nginx.sh"
+            --file "infra/k8s/system/install-ingress-nginx.sh" \
+            --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
+
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
