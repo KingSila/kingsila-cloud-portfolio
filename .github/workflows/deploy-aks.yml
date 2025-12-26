@@ -33,6 +33,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Show Azure account info
+        shell: bash
+        run: |
+          az account show --query "{user:user.name, type:user.type, tenant:tenantId, sub:id}" -o jsonc
+          az account get-access-token --resource https://management.azure.com/ --query "expiresOn" -o tsv
+
       - name: Select cluster vars
         shell: bash
         run: |
