@@ -244,18 +244,48 @@ jobs:
             --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               sh -lc \"curl -sS -D- http://app-svc.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
+      # --------------------------
+      # NEW: Resolve ingress host from the cluster (test)
+      # --------------------------
+      - name: Resolve ingress host (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="$(az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl -n ${ENV_NAME} get ingress app -o jsonpath='{.spec.rules[0].host}'" \
+            -o tsv | tr -d '\r')"
+
+          if [ -z "$HOST" ]; then
+            echo "ERROR: Ingress host not found for ${ENV_NAME}/app"
+            exit 1
+          fi
+
+          echo "Resolved ingress host: [$HOST]"
+          echo "INGRESS_HOST=$HOST" >> "$GITHUB_ENV"
+
       - name: Smoke testingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
+
+          # Default (dev) host pattern; test will override from live ingress
           HOST="app.${ENV_NAME}.local"
+          if [ "${ENV_NAME}" = "test" ]; then
+            HOST="${INGRESS_HOST}"
+          fi
+
           EXPECT="hello-from-${ENV_NAME}-via-ingress"
+
+          echo "Using Host header: [$HOST]"
 
           OUT="$(az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-              sh -lc \"curl -sS -D- -H 'Host: ${HOST}' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
+            --command "HOST='${HOST}' sh -lc \"kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+              curl -sS -D- -H \\\"Host: \\$HOST\\\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
 
           echo "$OUT" | tail -n 80
           echo "$OUT" | grep -q "$EXPECT"
