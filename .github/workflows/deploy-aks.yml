@@ -147,6 +147,11 @@ jobs:
           YAML"
 
       - name: Apply NetworkPolicy-allow-test-to-app (test)
+            -g rg-kingsila-test \
+            -n aks-kingsila-test \
+            --command "kubectl get ns test || kubectl create ns test"
+
+      - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
           set -euo pipefail
