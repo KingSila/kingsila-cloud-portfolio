@@ -90,6 +90,16 @@ jobs:
             --file "infra/k8s/system/install-ingress-nginx.sh" \
             --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
 
+      - name: Ensure test namespace exists (test only)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g rg-kingsila-test \
+            -n aks-kingsila-test \
+            --command "kubectl get ns test || kubectl create ns test"
+
       - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
