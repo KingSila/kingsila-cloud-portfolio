@@ -1,4 +1,4 @@
-# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-18)
+# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-26)
 **Azure · Terraform · GitHub Actions · AKS · SRE**
 
 ---
@@ -63,21 +63,28 @@ Completed:
 
 ---
 
-## ☸️ Weeks 7–8: AKS Platform Layer — Foundations Started
-**Status: ~15% Complete**
+## ☸️ Weeks 7–8: AKS Platform Layer — Actively Under Construction
+**Status: ~30% Complete**
 
-### New Progress (from GitHub Kanban)
-- [x] Added outputs to AKS module (cluster name, node RG, OIDC URL)
-- [x] Created dev Kubernetes manifests (namespace, SA, Deployment)
-- [ ] Test workload identity end-to-end in AKS
-- [ ] Configure NGINX ingress baseline for dev
-- [ ] Prepare test environment AKS deployment pipeline
+### Completed / In Progress
+- [x] AKS module outputs (cluster name, node RG, OIDC issuer URL)
+- [x] Dev Kubernetes manifests created
+  - Namespace
+  - ServiceAccount
+  - Deployment (hardened security context)
+- [x] Dev AKS cluster lifecycle exercised (create / destroy / recover)
+- [x] Initial ingress-nginx controller deployed in dev
+- [x] GitHub Actions groundwork for AKS deploy pipeline (dev/test split)
+- [ ] Workload identity end-to-end test (AKS → Azure)
+- [ ] Stabilise ingress access pattern for private AKS
+- [ ] Prepare test environment AKS deployment pipeline (separate cluster + namespace)
 
 ### Remaining for Weeks 7–8
-- AKS module enhancements (node pools, logging, metrics)
+- AKS module enhancements (node pools, autoscaling, logging, metrics)
+- Standardise namespace + baseline policies per environment
 - Build base Helm “golden chart”
-- Implement ingress & workload identity wiring across environments
-- Document deployment standards (`/docs/platform-runtime.md`)
+- Wire workload identity consistently across dev/test
+- Runtime standards documentation (`/docs/platform-runtime.md`)
 
 ---
 
@@ -85,12 +92,13 @@ Completed:
 **Status: 0% (Not Started)**
 
 Planned:
-- Metrics/logs/tracing for AKS + workloads
-- Grafana / App Insights dashboards
+- AKS metrics, logs, and traces
+- Application Insights + Container Insights alignment
+- Grafana dashboards
 - HPA, readiness/liveness probes, PDBs
-- Alert rules for cluster + apps
+- Alerting rules (cluster + workload)
 - SLO definitions
-- Reliability docs (`/docs/sre.md`)
+- Reliability documentation (`/docs/sre.md`)
 
 ---
 
@@ -99,50 +107,44 @@ Planned:
 
 Planned:
 - Architecture diagrams (Hub-Spoke + AKS + CI/CD)
-- Platform Overview in README
-- 10-minute internal presentation
+- Platform overview in README
+- 10-minute internal-style presentation
 - Promotion narrative
 - CV updates
-- Optional: publish article + record walkthrough
+- Optional: article or recorded walkthrough
 
 ---
 
 # 📊 Overall Progress
 
-**Current Progress:** **70%**
-(up from ~65% after completing all Week 5–6 items and starting Weeks 7–8)
+**Current Progress:** **~72%**
 
 ### Breakdown:
 - Weeks 1–4 → **100%**
 - Weeks 5–6 → **100%**
-- Weeks 7–8 → **~15% in progress**
+- Weeks 7–8 → **~30% in progress**
 - Weeks 9–12 → **0%**
 
 ---
 
 # 📌 Snapshot Summary
 
-### ✔ Completed to date
-- CI/CD automation
-- Multi-env Terraform architecture
+### ✔ Completed to Date
+- End-to-end CI/CD for Terraform
+- Multi-environment IaC architecture
 - Azure identity + Key Vault patterns
-- Azure Policy-as-Code
-- Security scanning (tfsec + Checkov)
-- App Service + Insights + KV integration
-- Full governance & security baseline
+- Policy-as-Code and security scanning
+- Governance guardrails
+- AKS cluster foundation + dev workloads
 
-### 🚀 In Progress (Weeks 7–8)
-- AKS workload identity test path
-- AKS module outputs
-- Dev Kubernetes manifests
-- Ingress work starting
-- Test env AKS pipeline preparation
+### 🚀 In Progress
+- AKS workload identity validation
+- Ingress hardening for private AKS
+- Dev/test AKS deployment pipelines
+- Runtime standardisation
 
 ### 🔜 Coming Next
 - Helm golden chart
-- Production-ready ingress
-- AKS app pipeline
-- Observability + dashboards
-- Reliability patterns
-
----
+- Production-grade ingress
+- AKS app delivery pipeline
+- Observability and SRE patterns
