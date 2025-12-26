@@ -1,4 +1,4 @@
-name: "Deploy AKS (dev/test/prod)"
+name: Deploy AKS (dev/test/prod)
 
 on:
   workflow_dispatch:
@@ -26,20 +26,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: "Azure Login (OIDC)"
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: "Show Azure account info"
+      - name: Show Azure account info
         shell: bash
         run: |
           az account show --query "{user:user.name, type:user.type, tenant:tenantId, sub:id}" -o jsonc
           az account get-access-token --resource https://management.azure.com/ --query "expiresOn" -o tsv
 
-      - name: "Select cluster vars"
+      - name: Select cluster vars
         shell: bash
         run: |
           set -euo pipefail
@@ -55,12 +55,12 @@ jobs:
 
           echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
-      - name: "Setup kubectl (for kustomize build)"
+      - name: Setup kubectl (for kustomize build)
         uses: azure/setup-kubectl@v4
         with:
           version: "latest"
 
-      - name: "Build kustomize overlay (runner)"
+      - name: Build kustomize overlay (runner)
         shell: bash
         run: |
           set -euo pipefail
@@ -83,7 +83,7 @@ jobs:
       # TEST ONLY: cluster bootstrap (ingress + namespace + networkpolicy)
       # -----------------------------------------------------------------------
 
-      - name: "Install NGINX ingress controller (test)"
+      - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -94,7 +94,7 @@ jobs:
             --file "infra/k8s/system/install-ingress-nginx.sh" \
             --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
 
-      - name: "Ensure test namespace exists (test only)"
+      - name: Ensure test namespace exists (test only)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -104,7 +104,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl get ns test || kubectl create ns test"
 
-      - name: "Apply NetworkPolicy: default-deny-all (test)"
+      - name: Apply NetworkPolicydefault-deny-all (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -115,7 +115,7 @@ jobs:
             --file infra/k8s/overlays/test/networkpolicy-default-deny.yaml \
             --command "kubectl apply -f networkpolicy-default-deny.yaml"
 
-      - name: "Apply NetworkPolicy: allow-dns-egress (test)"
+      - name: Apply NetworkPolicyallow-dns-egress (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -126,7 +126,7 @@ jobs:
             --file infra/k8s/overlays/test/networkpolicy-allow-dns-egress.yaml \
             --command "kubectl apply -f networkpolicy-allow-dns-egress.yaml"
 
-      - name: "Create extra NetworkPolicy files (test)"
+      - name: Create extra NetworkPolicy files (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -167,7 +167,7 @@ jobs:
                 port: 8080
           YAML
 
-      - name: "Apply NetworkPolicy: allow-egress-within-test (test)"
+      - name: Apply NetworkPolicyallow-egress-within-namespace (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -178,7 +178,7 @@ jobs:
             --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
             --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
 
-      - name: "Apply NetworkPolicy: allow-test-to-app (test)"
+      - name: Apply NetworkPolicyallow-test-to-app (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -189,7 +189,7 @@ jobs:
             --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
             --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
 
-      - name: "Apply NetworkPolicy: allow-ingress-nginx-to-app (test)"
+      - name: Apply NetworkPolicyallow-ingress-nginx-to-app (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -204,7 +204,7 @@ jobs:
       # Deploy workload manifests
       # --------------------------
 
-      - name: "Apply manifests via AKS Run Command (private cluster safe)"
+      - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
           set -euo pipefail
@@ -214,7 +214,7 @@ jobs:
             --file "${MANIFEST_FILE}" \
             --command "set -euo pipefail; ls -la; test -s manifests.yaml; kubectl apply -f manifests.yaml"
 
-      - name: "Patch ServiceAccount WI client-id (dev only)"
+      - name: Patch ServiceAccount WI client-id (dev only)
         if: ${{ inputs.environment == 'dev' }}
         shell: bash
         run: |
@@ -225,7 +225,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl -n dev annotate sa app-sa azure.workload.identity/client-id=${WI_CLIENT_ID} --overwrite"
 
-      - name: "Wait for rollout"
+      - name: Wait for rollout
         shell: bash
         run: |
           set -euo pipefail
@@ -234,10 +234,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl -n ${ENV_NAME} rollout status deploy/app --timeout=240s"
 
-
-
-
-      - name: "Smoke test: service connectivity (in-cluster)"
+      - name: Smoke testservice connectivity (in-cluster)
         shell: bash
         run: |
           set -euo pipefail
@@ -247,61 +244,23 @@ jobs:
             --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               sh -lc \"curl -sS -D- http://app-svc.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
-
-      - name: "Show ingress resources (pre-ingress smoke test)"
+      - name: Smoke testingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} get ingress -o wide; echo '---'; kubectl -n ${ENV_NAME} get ingress app -o yaml || true"
-
-      - name: "Read ingress host (test)"
-        if: ${{ inputs.environment == 'test' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          HOST="$(az aks command invoke \
-            -g \"${RG}\" \
-            -n \"${AKS}\" \
-            --command \"kubectl -n ${ENV_NAME} get ingress app -o jsonpath='{.spec.rules[0].host}'\" \
-            -o tsv | tr -d '\r')"
-
-          if [ -z "$HOST" ]; then
-            echo "ERROR: Ingress host not found"
-            exit 1
-          fi
-
-          echo "Resolved ingress host: $HOST"
-          echo "INGRESS_HOST=$HOST" >> "$GITHUB_ENV"
-
-      - name: "Smoke test: ingress routing (in-cluster curl via ingress)"
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Use live ingress host for test, fallback for dev
           HOST="app.${ENV_NAME}.local"
-          if [ "${ENV_NAME}" = "test" ]; then
-            HOST="${INGRESS_HOST}"
-          fi
-
           EXPECT="hello-from-${ENV_NAME}-via-ingress"
 
           OUT="$(az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} run curl-ing \
-              --image=curlimages/curl:8.10.1 \
-              --rm --restart=Never \
-              -- sh -lc \"curl -sS -D- -H 'Host: ${HOST}' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
+            --command "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+              sh -lc \"curl -sS -D- -H 'Host: ${HOST}' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
 
           echo "$OUT" | tail -n 80
           echo "$OUT" | grep -q "$EXPECT"
 
-      - name: "Debug dump on failure"
+      - name: Debug dump on failure
         if: failure()
         shell: bash
         run: |
