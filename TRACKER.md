@@ -63,33 +63,37 @@ Completed:
 
 ---
 
-## ☸️ Weeks 7–8: AKS Platform Layer — Actively Under Construction
-**Status: ~30% Complete**
+## ☸️ Weeks 7–8: AKS Platform Layer
+**Status: ~85% Complete** ✅
 
-### Completed / In Progress
+### Completed (Major Progress)
 - [x] AKS module outputs (cluster name, node RG, OIDC issuer URL)
-- [x] Dev Kubernetes manifests created
+- [x] Dev **and Test** Kubernetes manifests created and validated
   - Namespace
   - ServiceAccount
   - Deployment (hardened security context)
-- [x] Dev AKS cluster lifecycle exercised (create / destroy / recover)
-- [x] Initial ingress-nginx controller deployed in dev
-- [x] GitHub Actions groundwork for AKS deploy pipeline (dev/test split)
-- [ ] Workload identity end-to-end test (AKS → Azure)
-- [ ] Stabilise ingress access pattern for private AKS
-- [ ] Prepare test environment AKS deployment pipeline (separate cluster + namespace)
+- [x] Dev and Test AKS cluster lifecycle exercised (create / destroy / recover)
+- [x] Workload Identity wired and validated in-cluster
+- [x] NGINX ingress controller deployed and configured
+- [x] Ingress routing validated end-to-end (HTTP 200 confirmed)
+- [x] Default-deny NetworkPolicy baseline implemented
+- [x] Fine-grained allow NetworkPolicies:
+  - DNS egress
+  - ingress-nginx → app
+  - namespace-local traffic
+- [x] Private AKS access solved via `az aks command invoke`
+- [x] GitHub Actions AKS deployment pipeline stabilised (dev/test)
+- [x] Service and ingress smoke tests added to CI
+- [x] CI validates **runtime behaviour**, not just manifests
 
-### Remaining for Weeks 7–8
-- AKS module enhancements (node pools, autoscaling, logging, metrics)
-- Standardise namespace + baseline policies per environment
-- Build base Helm “golden chart”
-- Wire workload identity consistently across dev/test
-- Runtime standards documentation (`/docs/platform-runtime.md`)
+### Remaining (Small, Non-Risky)
+- [ ] Helm base “golden chart”
+- [ ] Runtime standards documentation (`/docs/platform-runtime.md`)
 
 ---
 
 ## 🔭 Weeks 9–10: Observability, SRE & Reliability
-**Status: 0% (Not Started)**
+**Status: ~10% Planned**
 
 Planned:
 - AKS metrics, logs, and traces
@@ -103,27 +107,27 @@ Planned:
 ---
 
 ## 🎨 Weeks 11–12: Platform Packaging & Career Positioning
-**Status: 0% (Not Started)**
+**Status: ~5% Planned**
 
 Planned:
 - Architecture diagrams (Hub-Spoke + AKS + CI/CD)
-- Platform overview in README
+- Platform overview README
 - 10-minute internal-style presentation
-- Promotion narrative
-- CV updates
+- Promotion / career narrative
+- CV and LinkedIn updates
 - Optional: article or recorded walkthrough
 
 ---
 
 # 📊 Overall Progress
 
-**Current Progress:** **~72%**
+**Current Progress:** **~78%**
 
 ### Breakdown:
 - Weeks 1–4 → **100%**
 - Weeks 5–6 → **100%**
-- Weeks 7–8 → **~30% in progress**
-- Weeks 9–12 → **0%**
+- Weeks 7–8 → **~85%**
+- Weeks 9–12 → **~10% planned**
 
 ---
 
@@ -135,16 +139,20 @@ Planned:
 - Azure identity + Key Vault patterns
 - Policy-as-Code and security scanning
 - Governance guardrails
-- AKS cluster foundation + dev workloads
+- **AKS platform fully validated (private cluster, ingress, networking)**
+- **Ingress + NetworkPolicy solved under real constraints**
 
 ### 🚀 In Progress
-- AKS workload identity validation
-- Ingress hardening for private AKS
-- Dev/test AKS deployment pipelines
-- Runtime standardisation
+- Helm standardisation
+- Runtime documentation
+- Observability planning
 
 ### 🔜 Coming Next
 - Helm golden chart
-- Production-grade ingress
-- AKS app delivery pipeline
+- TLS + cert-manager
 - Observability and SRE patterns
+- Production-ready AKS rollout narrative
+
+---
+
+**You are now well past the most technically risky phase of the 12-week platform engineering journey. The remaining work is refinement, visibility, and storytelling — not core engineering risk.**
