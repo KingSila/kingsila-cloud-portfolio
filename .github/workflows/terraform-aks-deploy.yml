@@ -104,7 +104,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl get ns test || kubectl create ns test"
 
-      - name: Apply NetworkPolicy-default-deny-all (test)
+      - name: Apply NetworkPolicydefault-deny-all (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -115,7 +115,7 @@ jobs:
             --file infra/k8s/overlays/test/networkpolicy-default-deny.yaml \
             --command "kubectl apply -f networkpolicy-default-deny.yaml"
 
-      - name: Apply NetworkPolicy-allow-dns-egress (test)
+      - name: Apply NetworkPolicyallow-dns-egress (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -167,7 +167,7 @@ jobs:
                 port: 8080
           YAML
 
-      - name: Apply NetworkPolicy-allow-egress-within-namespace (test)
+      - name: Apply NetworkPolicyallow-egress-within-namespace (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -178,7 +178,7 @@ jobs:
             --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
             --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
 
-      - name: Apply NetworkPolicy-allow-test-to-app (test)
+      - name: Apply NetworkPolicyallow-test-to-app (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -189,7 +189,7 @@ jobs:
             --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
             --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
 
-      - name: Apply NetworkPolicy-allow-ingress-nginx-to-app (test)
+      - name: Apply NetworkPolicyallow-ingress-nginx-to-app (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
@@ -234,7 +234,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl -n ${ENV_NAME} rollout status deploy/app --timeout=240s"
 
-      - name: Smoke test-service connectivity (in-cluster)
+      - name: Smoke testservice connectivity (in-cluster)
         shell: bash
         run: |
           set -euo pipefail
@@ -244,7 +244,7 @@ jobs:
             --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               sh -lc \"curl -sS -D- http://app-svc.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
-      - name: Smoke test-ingress routing (in-cluster curl via ingress)
+      - name: Smoke testingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
