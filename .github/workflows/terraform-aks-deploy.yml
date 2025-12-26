@@ -1,4 +1,4 @@
-name: Deploy AKS (dev/test)
+name: Deploy AKS (dev/test/prod)
 
 on:
   workflow_dispatch:
@@ -105,6 +105,7 @@ jobs:
             --command "kubectl get ns test || kubectl create ns test"
 
       - name: Apply NetworkPolicydefault-deny-all (test)
+        if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -115,6 +116,7 @@ jobs:
             --command "kubectl apply -f networkpolicy-default-deny.yaml"
 
       - name: Apply NetworkPolicyallow-dns-egress (test)
+        if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -124,14 +126,13 @@ jobs:
             --file infra/k8s/overlays/test/networkpolicy-allow-dns-egress.yaml \
             --command "kubectl apply -f networkpolicy-allow-dns-egress.yaml"
 
-      - name: Apply NetworkPolicyallow-egress-within-namespace (test)
+      - name: Create extra NetworkPolicy files (test)
+        if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "cat <<'YAML' | kubectl apply -f -
+
+          cat > "$RUNNER_TEMP/networkpolicy-allow-egress-within-test.yaml" <<'YAML'
           apiVersion: networking.k8s.io/v1
           kind: NetworkPolicy
           metadata:
@@ -144,21 +145,9 @@ jobs:
             egress:
             - to:
               - podSelector: {}
-          YAML"
+          YAML
 
-      - name: Apply NetworkPolicy-allow-test-to-app (test)
-            -g rg-kingsila-test \
-            -n aks-kingsila-test \
-            --command "kubectl get ns test || kubectl create ns test"
-
-      - name: Apply manifests via AKS Run Command (private cluster safe)
-        shell: bash
-        run: |
-          set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "cat <<'YAML' | kubectl apply -f -
+          cat > "$RUNNER_TEMP/networkpolicy-allow-test-to-app.yaml" <<'YAML'
           apiVersion: networking.k8s.io/v1
           kind: NetworkPolicy
           metadata:
@@ -176,9 +165,32 @@ jobs:
               ports:
               - protocol: TCP
                 port: 8080
-          YAML"
+          YAML
 
-      - name: Apply NetworkPolicy-allow-ingress-nginx-to-app (test)
+      - name: Apply NetworkPolicyallow-egress-within-namespace (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
+
+      - name: Apply NetworkPolicyallow-test-to-app (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
+
+      - name: Apply NetworkPolicyallow-ingress-nginx-to-app (test)
+        if: ${{ inputs.environment == 'test' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -222,7 +234,7 @@ jobs:
             -n "${AKS}" \
             --command "kubectl -n ${ENV_NAME} rollout status deploy/app --timeout=240s"
 
-      - name: Smoke test-service connectivity (in-cluster)
+      - name: Smoke testservice connectivity (in-cluster)
         shell: bash
         run: |
           set -euo pipefail
@@ -232,7 +244,7 @@ jobs:
             --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               sh -lc \"curl -sS -D- http://app-svc.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
-      - name: Smoke test-ingress routing (in-cluster curl via ingress)
+      - name: Smoke testingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
