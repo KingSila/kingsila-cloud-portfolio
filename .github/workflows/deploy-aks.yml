@@ -55,7 +55,7 @@ jobs:
 
           echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
-      - name: Setup kubectl
+      - name: Setup kubectl (for kustomize build)
         uses: azure/setup-kubectl@v4
         with:
           version: "latest"
@@ -79,6 +79,10 @@ jobs:
 
           echo "MANIFEST_FILE=$OUT_FILE" >> "$GITHUB_ENV"
 
+      # -----------------------------------------------------------------------
+      # TEST ONLY: cluster bootstrap (ingress + namespace + networkpolicy)
+      # -----------------------------------------------------------------------
+
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
         shell: bash
@@ -96,17 +100,97 @@ jobs:
         run: |
           set -euo pipefail
           az aks command invoke \
-            -g rg-kingsila-test \
-            -n aks-kingsila-test \
+            -g "${RG}" \
+            -n "${AKS}" \
             --command "kubectl get ns test || kubectl create ns test"
+
+      - name: Apply NetworkPolicydefault-deny-all (test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-default-deny.yaml \
+            --command "kubectl apply -f networkpolicy-default-deny.yaml"
+
+      - name: Apply NetworkPolicyallow-dns-egress (test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-allow-dns-egress.yaml \
+            --command "kubectl apply -f networkpolicy-allow-dns-egress.yaml"
+
+      - name: Apply NetworkPolicyallow-egress-within-namespace (test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "cat <<'YAML' | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: allow-egress-within-test
+            namespace: test
+          spec:
+            podSelector: {}
+            policyTypes:
+            - Egress
+            egress:
+            - to:
+              - podSelector: {}
+          YAML"
+
+      - name: Apply NetworkPolicy-allow-test-to-app (test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "cat <<'YAML' | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: allow-test-to-app
+            namespace: test
+          spec:
+            podSelector:
+              matchLabels:
+                app: app
+            policyTypes:
+            - Ingress
+            ingress:
+            - from:
+              - podSelector: {}
+              ports:
+              - protocol: TCP
+                port: 8080
+          YAML"
+
+      - name: Apply NetworkPolicy-allow-ingress-nginx-to-app (test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-allow-ingress-nginx-to-app.yaml \
+            --command "kubectl apply -f networkpolicy-allow-ingress-nginx-to-app.yaml"
+
+      # --------------------------
+      # Deploy workload manifests
+      # --------------------------
 
       - name: Apply manifests via AKS Run Command (private cluster safe)
         shell: bash
         run: |
           set -euo pipefail
-
-          # Upload the built file; AKS Run Command places it in the remote working dir
-          # using the basename (e.g., manifests.yaml). Apply that remote file directly.
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
@@ -119,7 +203,6 @@ jobs:
         run: |
           set -euo pipefail
           WI_CLIENT_ID="${{ secrets.WI_APP_DEV_CLIENT_ID }}"
-
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
@@ -134,7 +217,17 @@ jobs:
             -n "${AKS}" \
             --command "kubectl -n ${ENV_NAME} rollout status deploy/app --timeout=240s"
 
-      - name: Smoke test (in-cluster curl via ingress)
+      - name: Smoke test-service connectivity (in-cluster)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+              sh -lc \"curl -sS -D- http://app-svc.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
+
+      - name: Smoke test-ingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
@@ -144,10 +237,10 @@ jobs:
           OUT="$(az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} run curl --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            --command "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               sh -lc \"curl -sS -D- -H 'Host: ${HOST}' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
 
-          echo "$OUT" | tail -n 50
+          echo "$OUT" | tail -n 80
           echo "$OUT" | grep -q "$EXPECT"
 
       - name: Debug dump on failure
@@ -158,4 +251,7 @@ jobs:
           az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl get pods -A -o wide"
           az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get all"
           az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} describe deploy app"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} describe svc app-svc"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get endpointslices -l kubernetes.io/service-name=app-svc -o wide"
+          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get networkpolicy -o wide"
           az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200"
