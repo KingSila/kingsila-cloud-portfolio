@@ -1,4 +1,4 @@
-name: Deploy AKS (dev/test/prod)
+name: Deploy AKS (test/dev)
 
 on:
   workflow_dispatch:
