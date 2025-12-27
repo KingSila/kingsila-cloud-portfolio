@@ -1,0 +1,41 @@
+{{- $labels := include "golden-app.labels" . -}}
+{{- $selector := include "golden-app.selectorLabels" . -}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "golden-app.fullname" . }}
+  labels:
+{{ $labels | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+{{ $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+{{ $selector | nindent 8 }}
+{{- if .Values.workloadIdentity.enabled }}
+        azure.workload.identity/use: "true"
+{{- end }}
+    spec:
+      serviceAccountName: {{ include "golden-app.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          resources:
+{{ toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
