@@ -39,6 +39,7 @@ jobs:
       - name: Show Azure account info
         shell: bash
         run: |
+          set -euo pipefail
           az account show --query "{user:user.name, type:user.type, tenant:tenantId, sub:id}" -o jsonc
           az account get-access-token --resource https://management.azure.com/ --query "expiresOn" -o tsv
 
@@ -88,7 +89,7 @@ jobs:
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl get ns test || kubectl create ns test"
+            --command "kubectl get ns test >/dev/null 2>&1 || kubectl create ns test"
 
       - name: Apply NetworkPolicy default-deny-all (test)
         if: ${{ inputs.environment == 'test' }}
@@ -228,35 +229,46 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command "set -euo pipefail; ls -la; test -s helm-rendered.yaml; kubectl apply -f helm-rendered.yaml"
+            --command "set -euo pipefail; ls -la; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
       # --------------------------
-      # Wait + Smoke tests (use Helm-generated names)
+      # Wait + Smoke tests (robust name resolution)
       # --------------------------
       - name: Resolve workload names from cluster (post-deploy)
+        id: resolve
         shell: bash
         run: |
           set -euo pipefail
 
-          DEPLOY_NAME="$(az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o jsonpath='{.items[0].metadata.name}'" \
-            -o tsv | tr -d '\r')"
+          aks_run() {
+            az aks command invoke \
+              -g "${RG}" \
+              -n "${AKS}" \
+              --command "$1" \
+              -o json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("logs","").rstrip())'
+          }
 
-          SVC_NAME="$(az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} get svc -l app.kubernetes.io/instance=${HELM_RELEASE} -o jsonpath='{.items[0].metadata.name}'" \
-            -o tsv | tr -d '\r')"
+          DEPLOY_REF="$(aks_run "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
+          SVC_REF="$(aks_run "kubectl -n ${ENV_NAME} get svc   -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
 
-          if [ -z "${DEPLOY_NAME}" ] || [ -z "${SVC_NAME}" ]; then
-            echo "ERROR: Could not resolve deploy/service name for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+          if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
+            echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+            echo "--- debug: deployments ---"
+            aks_run "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o wide || true"
+            echo "--- debug: services ---"
+            aks_run "kubectl -n ${ENV_NAME} get svc -l app.kubernetes.io/instance=${HELM_RELEASE} -o wide || true"
             exit 1
           fi
 
+          DEPLOY_NAME="${DEPLOY_REF#deploy/}"
+          SVC_NAME="${SVC_REF#service/}"
+
           echo "Resolved deploy: ${DEPLOY_NAME}"
           echo "Resolved service: ${SVC_NAME}"
+
+          echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
+          echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
+
           echo "DEPLOY_NAME=${DEPLOY_NAME}" >> "$GITHUB_ENV"
           echo "SVC_NAME=${SVC_NAME}" >> "$GITHUB_ENV"
 
@@ -267,7 +279,7 @@ jobs:
           az aks command invoke \
             -g "${RG}" \
             -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} rollout status deploy/${DEPLOY_NAME} --timeout=240s"
+            --command "kubectl -n ${ENV_NAME} rollout status deploy/${{ steps.resolve.outputs.deploy_name }} --timeout=240s"
 
       - name: Smoke test service connectivity (in-cluster)
         shell: bash
@@ -277,43 +289,50 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-              sh -lc \"curl -sS -D- http://${SVC_NAME}.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
+              sh -lc \"curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
       # --------------------------
       # Resolve ingress host from the cluster (test)
       # --------------------------
       - name: Resolve ingress host (test)
         if: ${{ inputs.environment == 'test' }}
+        id: ingress
         shell: bash
         run: |
           set -euo pipefail
 
-          INGRESS_NAME="$(az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} get ingress -l app.kubernetes.io/instance=${HELM_RELEASE} -o jsonpath='{.items[0].metadata.name}'" \
-            -o tsv | tr -d '\r')"
+          aks_run() {
+            az aks command invoke \
+              -g "${RG}" \
+              -n "${AKS}" \
+              --command "$1" \
+              -o json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("logs","").rstrip())'
+          }
 
-          if [ -z "$INGRESS_NAME" ]; then
+          INGRESS_REF="$(aks_run "kubectl -n ${ENV_NAME} get ingress -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
+          if [ -z "$INGRESS_REF" ]; then
             echo "ERROR: No ingress found for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+            aks_run "kubectl -n ${ENV_NAME} get ingress -o wide || true"
             exit 1
           fi
 
-          HOST="$(az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} get ingress ${INGRESS_NAME} -o jsonpath='{.spec.rules[0].host}'" \
-            -o tsv | tr -d '\r')"
-
+          HOST="$(aks_run "kubectl -n ${ENV_NAME} get ${INGRESS_REF} -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || true")"
           if [ -z "$HOST" ]; then
-            echo "ERROR: Ingress host not found for ${ENV_NAME}/${INGRESS_NAME}"
+            echo "ERROR: Ingress host not found on ${INGRESS_REF}"
+            aks_run "kubectl -n ${ENV_NAME} get ${INGRESS_REF} -o yaml | sed -n '1,160p' || true"
             exit 1
           fi
+
+          INGRESS_NAME="${INGRESS_REF#ingress/}"
 
           echo "Resolved ingress: ${INGRESS_NAME}"
           echo "Resolved ingress host: [$HOST]"
+
+          echo "ingress_name=${INGRESS_NAME}" >> "$GITHUB_OUTPUT"
+          echo "ingress_host=${HOST}" >> "$GITHUB_OUTPUT"
+
           echo "INGRESS_NAME=${INGRESS_NAME}" >> "$GITHUB_ENV"
-          echo "INGRESS_HOST=$HOST" >> "$GITHUB_ENV"
+          echo "INGRESS_HOST=${HOST}" >> "$GITHUB_ENV"
 
       - name: Smoke test ingress routing (in-cluster curl via ingress)
         shell: bash
@@ -322,7 +341,7 @@ jobs:
 
           HOST="app.${ENV_NAME}.local"
           if [ "${ENV_NAME}" = "test" ]; then
-            HOST="${INGRESS_HOST}"
+            HOST="${{ steps.ingress.outputs.ingress_host }}"
           fi
 
           echo "Using Host header: [$HOST]"
@@ -333,7 +352,7 @@ jobs:
             --command "HOST='${HOST}' sh -lc \"kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
               curl -sS -D- -H \\\"Host: \\$HOST\\\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
 
-          echo "$OUT" | tail -n 80
+          echo "$OUT" | tail -n 120
 
       - name: Debug dump on failure
         if: failure()
