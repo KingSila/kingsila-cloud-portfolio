@@ -1,0 +1,13 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/kubernetes-e2e-test-images/agnhost
+  tag: "2.45"
+
+workloadIdentity:
+  enabled: true
+  clientId: <TEST_UAMI_CLIENT_ID>
+
+ingress:
+  enabled: true
+  host: test.golden.internal
