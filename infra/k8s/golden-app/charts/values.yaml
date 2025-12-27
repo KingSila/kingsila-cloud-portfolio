@@ -1,0 +1,39 @@
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/kubernetes-e2e-test-images/agnhost
+  tag: "2.45"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "250m"
+    memory: "128Mi"
+
+service:
+  port: 8080
+
+serviceAccount:
+  create: true
+  name: ""
+
+workloadIdentity:
+  enabled: true
+  clientId: ""
+
+probes:
+  enabled: true
+  path: "/"
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  path: "/"
