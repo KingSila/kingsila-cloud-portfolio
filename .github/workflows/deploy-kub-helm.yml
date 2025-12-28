@@ -13,6 +13,10 @@ permissions:
   id-token: write
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 env:
   RG_DEV: rg-kingsila-dev
   AKS_DEV: aks-kingsila-dev
@@ -36,14 +40,12 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Show Azure account info
-        shell: bash
         run: |
           set -euo pipefail
           az account show --query "{user:user.name, type:user.type, tenant:tenantId, sub:id}" -o jsonc
           az account get-access-token --resource https://management.azure.com/ --query "expiresOn" -o tsv
 
       - name: Select cluster vars
-        shell: bash
         run: |
           set -euo pipefail
           ENV="${{ inputs.environment }}"
@@ -61,7 +63,6 @@ jobs:
           echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
       - name: Debug selected vars
-        shell: bash
         run: |
           set -euo pipefail
           echo "RG=${RG:-<missing>}"
@@ -71,7 +72,6 @@ jobs:
           echo "WI_CLIENT_ID=${WI_CLIENT_ID:-<missing>}"
 
       - name: Guard RG/AKS set
-        shell: bash
         run: |
           set -euo pipefail
           : "${RG:?missing RG}"
@@ -83,81 +83,60 @@ jobs:
           version: latest
 
       # -----------------------------------------------------------------------
-      # Helper: robust AKS Run Command wrapper (script; call via $AKS_RUN)
-      # Avoid heredocs + avoid "|| { }" blocks to prevent bash syntax issues.
+      # Helper: robust AKS Run Command wrapper (AKS_RUN)
       # -----------------------------------------------------------------------
       - name: Install aks_run helper
-        shell: bash
         run: |
           set -euo pipefail
 
-          echo "RUNNER_TEMP=${RUNNER_TEMP:-<unset>}"
           mkdir -p "${RUNNER_TEMP}"
           test -w "${RUNNER_TEMP}"
 
-          # JSON parser (no heredoc)
-          printf '%s\n' \
-          'import json, sys' \
-          'raw = sys.stdin.read()' \
-          'try:' \
-          '    obj = json.loads(raw)' \
-          'except Exception:' \
-          '    print("ERROR: Expected JSON from az aks command invoke, got:")' \
-          '    print(raw)' \
-          '    raise' \
-          'logs = obj.get("logs") or ""' \
-          'print(str(logs).rstrip())' \
-          > "${RUNNER_TEMP}/aks_run_parse.py"
+          # JSON parser
+          cat > "${RUNNER_TEMP}/aks_run_parse.py" <<'PY'
+          import json, sys
+          raw = sys.stdin.read()
+          obj = json.loads(raw)
+          logs = obj.get("logs") or ""
+          print(str(logs).rstrip())
+          PY
 
-                    # Bash wrapper (no heredoc, no "|| { }")
-                    printf '%s\n' \
-          '#!/usr/bin/env bash' \
-          'set -euo pipefail' \
-          '' \
-          ': "${RG:?RG env var is required}"' \
-          ': "${AKS:?AKS env var is required}"' \
-          '' \
-          'if [ "$#" -lt 1 ]; then' \
-          '  echo "Usage: aks_run <command...>"' \
-          '  exit 2' \
-          'fi' \
-          '' \
-          'cmd="$*"' \
-          '' \
-          'out=""' \
-          'if ! out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)"; then' \
-          '  echo "ERROR: az aks command invoke failed"' \
-          '  echo "${out}"' \
-          '  exit 1' \
-          'fi' \
-          '' \
-          'printf "%s" "${out}" | python3 "${RUNNER_TEMP}/aks_run_parse.py"' \
-          > "${RUNNER_TEMP}/aks_run"
+          # Bash wrapper
+          cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          : "${RG:?RG env var is required}"
+          : "${AKS:?AKS env var is required}"
+          : "${RUNNER_TEMP:?RUNNER_TEMP env var is required}"
 
-                    chmod +x "${RUNNER_TEMP}/aks_run"
-                    echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
+          if [ "$#" -lt 1 ]; then
+            echo "Usage: aks_run <command...>" >&2
+            exit 2
+          fi
 
-                    echo "Created:"
-                    ls -la "${RUNNER_TEMP}/aks_run" "${RUNNER_TEMP}/aks_run_parse.py"
+          cmd="$*"
+          out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json)"
+          printf "%s" "${out}" | python3 "${RUNNER_TEMP}/aks_run_parse.py"
+          BASH
 
-                    echo "aks_run contents (first 120 lines):"
-                    nl -ba "${RUNNER_TEMP}/aks_run" | sed -n '1,120p'
+          chmod +x "${RUNNER_TEMP}/aks_run"
+          echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
 
-                    echo "Syntax check:"
-                    /usr/bin/env bash -n "${RUNNER_TEMP}/aks_run"
+          echo "Created runner helper:"
+          ls -la "${RUNNER_TEMP}/aks_run" "${RUNNER_TEMP}/aks_run_parse.py"
+          /usr/bin/env bash -n "${RUNNER_TEMP}/aks_run"
 
       # -----------------------------------------------------------------------
-      # Cluster bootstrap (namespace always; ingress + netpol test-only)
+      # Cluster bootstrap
       # -----------------------------------------------------------------------
       - name: Ensure namespace exists (dev/test)
-        shell: bash
         run: |
           set -euo pipefail
-          "$AKS_RUN" kubectl get ns "${ENV_NAME}" >/dev/null 2>&1 || "$AKS_RUN" kubectl create ns "${ENV_NAME}"
+          "$AKS_RUN" kubectl get ns "${ENV_NAME}" >/dev/null 2>&1 || true
+          "$AKS_RUN" "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
-        shell: bash
         run: |
           set -euo pipefail
           az aks command invoke \
@@ -168,7 +147,6 @@ jobs:
 
       - name: Apply NetworkPolicy default-deny-all (test)
         if: ${{ inputs.environment == 'test' }}
-        shell: bash
         run: |
           set -euo pipefail
           az aks command invoke \
@@ -179,7 +157,6 @@ jobs:
 
       - name: Apply NetworkPolicy allow-dns-egress (test)
         if: ${{ inputs.environment == 'test' }}
-        shell: bash
         run: |
           set -euo pipefail
           az aks command invoke \
@@ -190,7 +167,6 @@ jobs:
 
       - name: Create extra NetworkPolicy files (test)
         if: ${{ inputs.environment == 'test' }}
-        shell: bash
         run: |
           set -euo pipefail
 
@@ -229,170 +205,156 @@ jobs:
                 port: 8080
           YAML
 
-                - name: Apply NetworkPolicy allow-egress-within-namespace (test)
-                  if: ${{ inputs.environment == 'test' }}
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                      -g "${RG}" \
-                      -n "${AKS}" \
-                      --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
-                      --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
+      - name: Apply NetworkPolicy allow-egress-within-namespace (test)
+        if: ${{ inputs.environment == 'test' }}
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
 
-                - name: Apply NetworkPolicy allow-test-to-app (test)
-                  if: ${{ inputs.environment == 'test' }}
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                      -g "${RG}" \
-                      -n "${AKS}" \
-                      --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
-                      --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
+      - name: Apply NetworkPolicy allow-test-to-app (test)
+        if: ${{ inputs.environment == 'test' }}
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
 
-                - name: Apply NetworkPolicy allow-ingress-nginx-to-app (test)
-                  if: ${{ inputs.environment == 'test' }}
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                      -g "${RG}" \
-                      -n "${AKS}" \
-                      --file infra/k8s/overlays/test/networkpolicy-allow-ingress-nginx-to-app.yaml \
-                      --command "kubectl apply -f networkpolicy-allow-ingress-nginx-to-app.yaml"
+      - name: Apply NetworkPolicy allow-ingress-nginx-to-app (test)
+        if: ${{ inputs.environment == 'test' }}
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-allow-ingress-nginx-to-app.yaml \
+            --command "kubectl apply -f networkpolicy-allow-ingress-nginx-to-app.yaml"
 
-                # --------------------------
-                # Helm render gate (runner)
-                # --------------------------
-                - name: Helm render validation (runner)
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
-                      --namespace "${ENV_NAME}" \
-                      -f ./infra/k8s/golden-app/charts/values.yaml \
-                      -f ./infra/k8s/${ENV_NAME}/values.yaml \
-                      --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
-                      --debug > /dev/null
+      # --------------------------
+      # Helm render gate (runner)
+      # --------------------------
+      - name: Helm render validation (runner)
+        run: |
+          set -euo pipefail
+          helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
+            --namespace "${ENV_NAME}" \
+            -f ./infra/k8s/golden-app/charts/values.yaml \
+            -f ./infra/k8s/${ENV_NAME}/values.yaml \
+            --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
+            --debug > /dev/null
 
-                # --------------------------
-                # Render Helm chart to manifests (runner) + Apply (in-cluster)
-                # --------------------------
-                - name: Render Helm chart to manifests (runner)
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    OUT_FILE="$RUNNER_TEMP/helm-rendered.yaml"
+      # --------------------------
+      # Render Helm chart to manifests (runner) + Apply (in-cluster)
+      # --------------------------
+      - name: Render Helm chart to manifests (runner)
+        run: |
+          set -euo pipefail
+          OUT_FILE="$RUNNER_TEMP/helm-rendered.yaml"
 
-                    helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
-                      --namespace "${ENV_NAME}" \
-                      -f ./infra/k8s/golden-app/charts/values.yaml \
-                      -f ./infra/k8s/${ENV_NAME}/values.yaml \
-                      --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
-                      > "${OUT_FILE}"
+          helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
+            --namespace "${ENV_NAME}" \
+            -f ./infra/k8s/golden-app/charts/values.yaml \
+            -f ./infra/k8s/${ENV_NAME}/values.yaml \
+            --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
+            > "${OUT_FILE}"
 
-                    test -s "${OUT_FILE}"
-                    echo "MANIFEST_FILE=${OUT_FILE}" >> "$GITHUB_ENV"
+          test -s "${OUT_FILE}"
+          echo "MANIFEST_FILE=${OUT_FILE}" >> "$GITHUB_ENV"
 
-                    echo "Rendered manifests (first 80 lines):"
-                    head -n 80 "${OUT_FILE}"
+          echo "Rendered manifests (first 80 lines):"
+          head -n 80 "${OUT_FILE}"
 
-                - name: Apply Helm-rendered manifests via AKS Run Command
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                      -g "${RG}" \
-                      -n "${AKS}" \
-                      --file "${MANIFEST_FILE}" \
-                      --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
+      - name: Apply Helm-rendered manifests via AKS Run Command
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${MANIFEST_FILE}" \
+            --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
-                # --------------------------
-                # Wait + Smoke tests
-                # --------------------------
-                - name: Resolve workload names from cluster (post-deploy)
-                  id: resolve
-                  shell: bash
-                  run: |
-                    set -euo pipefail
+      # --------------------------
+      # Wait + Smoke tests
+      # --------------------------
+      - name: Resolve workload names from cluster (post-deploy)
+        id: resolve
+        run: |
+          set -euo pipefail
 
-                    DEPLOY_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
-                    SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+          DEPLOY_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+          SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
 
-                    if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
-                      echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
-                      echo "--- debug: deployments ---"
-                      "$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
-                      echo "--- debug: services ---"
-                      "$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
-                      exit 1
-                    fi
+          if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
+            echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
+            exit 1
+          fi
 
-                    DEPLOY_NAME="${DEPLOY_REF#deploy/}"
-                    SVC_NAME="${SVC_REF#service/}"
+          DEPLOY_NAME="${DEPLOY_REF#deploy/}"
+          SVC_NAME="${SVC_REF#service/}"
 
-                    echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
-                    echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
+          echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
+          echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
 
-                - name: Wait for rollout
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" rollout status "deploy/${{ steps.resolve.outputs.deploy_name }}" --timeout=240s
+      - name: Wait for rollout
+        run: |
+          set -euo pipefail
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" rollout status "deploy/${{ steps.resolve.outputs.deploy_name }}" --timeout=240s
 
-                - name: Smoke test service connectivity (in-cluster)
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-                      sh -lc "curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60"
+      - name: Smoke test service connectivity (in-cluster)
+        run: |
+          set -euo pipefail
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            sh -lc "curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60"
 
-                - name: Resolve ingress host (test)
-                  if: ${{ inputs.environment == 'test' }}
-                  id: ingress
-                  shell: bash
-                  run: |
-                    set -euo pipefail
+      - name: Resolve ingress host (test)
+        if: ${{ inputs.environment == 'test' }}
+        id: ingress
+        run: |
+          set -euo pipefail
+          INGRESS_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get ingress -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
 
-                    INGRESS_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get ingress -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
-                    if [ -z "${INGRESS_REF}" ]; then
-                      echo "ERROR: No ingress found for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
-                      "$AKS_RUN" kubectl -n "${ENV_NAME}" get ingress -o wide || true
-                      exit 1
-                    fi
+          if [ -z "${INGRESS_REF}" ]; then
+            echo "ERROR: No ingress found for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get ingress -o wide || true
+            exit 1
+          fi
 
-                    HOST="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || true)"
-                    if [ -z "${HOST}" ]; then
-                      echo "ERROR: Ingress host not found on ${INGRESS_REF}"
-                      "$AKS_RUN" kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o yaml | sed -n '1,160p' || true
-                      exit 1
-                    fi
+          HOST="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || true)"
+          if [ -z "${HOST}" ]; then
+            echo "ERROR: Ingress host not found on ${INGRESS_REF}"
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o yaml | sed -n '1,160p' || true
+            exit 1
+          fi
 
-                    echo "ingress_host=${HOST}" >> "$GITHUB_OUTPUT"
+          echo "ingress_host=${HOST}" >> "$GITHUB_OUTPUT"
 
-                - name: Smoke test ingress routing (in-cluster curl via ingress)
-                  shell: bash
-                  run: |
-                    set -euo pipefail
+      - name: Smoke test ingress routing (in-cluster curl via ingress)
+        run: |
+          set -euo pipefail
 
-                    HOST="app.${ENV_NAME}.local"
-                    if [ "${ENV_NAME}" = "test" ]; then
-                      HOST="${{ steps.ingress.outputs.ingress_host }}"
-                    fi
+          HOST="app.${ENV_NAME}.local"
+          if [ "${ENV_NAME}" = "test" ]; then
+            HOST="${{ steps.ingress.outputs.ingress_host }}"
+          fi
 
-                    "$AKS_RUN" sh -lc "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-                      curl -sS -D- -H \"Host: ${HOST}\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/"
+          "$AKS_RUN" sh -lc "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            curl -sS -D- -H \"Host: ${HOST}\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/"
 
-                - name: Debug dump on failure
-                  if: failure()
-                  shell: bash
-                  run: |
-                    set +e
-                    "$AKS_RUN" kubectl get pods -A -o wide || true
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" get all -o wide || true
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" describe deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" describe svc -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" get endpointslices -o wide || true
-                    "$AKS_RUN" kubectl -n "${ENV_NAME}" get networkpolicy -o wide || true
-                    "$AKS_RUN" kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200 || true
+      - name: Debug dump on failure
+        if: failure()
+        run: |
+          set +e
+          "$AKS_RUN" kubectl get pods -A -o wide || true
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" get all -o wide || true
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" describe deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" describe svc -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" get endpointslices -o wide || true
+          "$AKS_RUN" kubectl -n "${ENV_NAME}" get networkpolicy -o wide || true
+          "$AKS_RUN" kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200 || true
