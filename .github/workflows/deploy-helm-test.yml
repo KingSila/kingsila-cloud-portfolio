@@ -230,7 +230,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command 'set -euo pipefail; ls -la; f=$(ls -1 *.y*ml | head -n1); test -s "$f"; kubectl apply -n "'"${ENV_NAME}"'" -f "$f"'
+            --command "set -euo pipefail; ls -la; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
       # --------------------------
       # Wait + Smoke tests (robust name resolution)
