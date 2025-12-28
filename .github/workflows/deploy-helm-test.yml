@@ -73,13 +73,6 @@ jobs:
           echo "HELM_RELEASE=${HELM_RELEASE:-<missing>}"
           echo "WI_CLIENT_ID=${WI_CLIENT_ID:-<missing>}"
 
-      - name: Guard RG/AKS set
-        shell: bash
-        run: |
-          set -euo pipefail
-          : "${RG:?missing RG}"
-          : "${AKS:?missing AKS}"
-
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:
@@ -88,13 +81,11 @@ jobs:
       # -----------------------------------------------------------------------
       # Cluster bootstrap (namespace always; ingress + netpol test-only)
       # -----------------------------------------------------------------------
-      - name: Install aks_run helper
+      - name: Define aks_run helper
         shell: bash
         run: |
           set -euo pipefail
-
-          cat > "$RUNNER_TEMP/aks_run" <<'BASH'
-          #!/usr/bin/env bash
+          cat > "$RUNNER_TEMP/aks_run.sh" <<'BASH'
           set -euo pipefail
 
       - name: Ensure namespace exists (dev/test)
@@ -267,9 +258,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          source "$RUNNER_TEMP/aks_run.sh"
 
-          DEPLOY_REF="$(aks_run kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
-          SVC_REF="$(aks_run kubectl -n "${ENV_NAME}" get svc   -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+          DEPLOY_REF="$(aks_run "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
+          SVC_REF="$(aks_run "kubectl -n ${ENV_NAME} get svc   -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
 
           if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
             echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
@@ -290,14 +282,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          aks_run kubectl -n "${ENV_NAME}" rollout status "deploy/${{ steps.resolve.outputs.deploy_name }}" --timeout=240s
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl -n ${ENV_NAME} rollout status deploy/${{ steps.resolve.outputs.deploy_name }} --timeout=240s"
 
       - name: Smoke test service connectivity (in-cluster)
         shell: bash
         run: |
           set -euo pipefail
-          aks_run kubectl -n "${ENV_NAME}" run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-            sh -lc "curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60"
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            sh -lc \"curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
       # --------------------------
       # Resolve ingress host from the cluster (test)
@@ -308,8 +302,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          source "$RUNNER_TEMP/aks_run.sh"
 
-          INGRESS_REF="$(aks_run kubectl -n "${ENV_NAME}" get ingress -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+          INGRESS_REF="$(aks_run "kubectl -n ${ENV_NAME} get ingress -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
           if [ -z "$INGRESS_REF" ]; then
             echo "ERROR: No ingress found for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
             aks_run kubectl -n "${ENV_NAME}" get ingress -o wide || true
@@ -332,24 +327,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          source "$RUNNER_TEMP/aks_run.sh"
 
           HOST="app.${ENV_NAME}.local"
           if [ "${ENV_NAME}" = "test" ]; then
             HOST="${{ steps.ingress.outputs.ingress_host }}"
           fi
 
-          aks_run sh -lc "kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-            curl -sS -D- -H \"Host: ${HOST}\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/"
+          aks_run "HOST='${HOST}' sh -lc \"kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            curl -sS -D- -H \\\"Host: \\$HOST\\\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\""
 
       - name: Debug dump on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          aks_run kubectl get pods -A -o wide || true
-          aks_run kubectl -n "${ENV_NAME}" get all -o wide || true
-          aks_run kubectl -n "${ENV_NAME}" describe deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
-          aks_run kubectl -n "${ENV_NAME}" describe svc -l app.kubernetes.io/instance="${HELM_RELEASE}" || true
-          aks_run kubectl -n "${ENV_NAME}" get endpointslices -o wide || true
-          aks_run kubectl -n "${ENV_NAME}" get networkpolicy -o wide || true
-          aks_run kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200 || true
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl get pods -A -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} get all -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} describe deploy -l app.kubernetes.io/instance=${HELM_RELEASE} || true"
+          aks_run "kubectl -n ${ENV_NAME} describe svc -l app.kubernetes.io/instance=${HELM_RELEASE} || true"
+          aks_run "kubectl -n ${ENV_NAME} get endpointslices -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} get networkpolicy -o wide || true"
+          aks_run "kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200 || true"
