@@ -1,4 +1,4 @@
-name: Terraform CI/CD - Infastrcuture
+name: Terraform CI/CD - Infra
 
 on:
   pull_request:
