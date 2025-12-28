@@ -24,7 +24,9 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # IMPORTANT: Private AKS requires network access from inside the VNet.
+    # Use a self-hosted runner placed in the AKS VNet (or peered VNet with DNS).
+    runs-on: [self-hosted, linux]
 
     steps:
       - uses: actions/checkout@v4
@@ -61,23 +63,68 @@ jobs:
 
           echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
+      - name: Debug selected vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RG=${RG:-<missing>}"
+          echo "AKS=${AKS:-<missing>}"
+          echo "ENV_NAME=${ENV_NAME:-<missing>}"
+          echo "HELM_RELEASE=${HELM_RELEASE:-<missing>}"
+          echo "WI_CLIENT_ID=${WI_CLIENT_ID:-<missing>}"
+
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:
           version: latest
 
       # -----------------------------------------------------------------------
+      # Helper: robust AKS Run Command wrapper (prevents None.rstrip crashes)
+      # -----------------------------------------------------------------------
+      - name: Define aks_run helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/aks_run.sh" <<'BASH'
+          set -euo pipefail
+
+          aks_run() {
+            local cmd="$1"
+            local out
+            # Always ask for JSON; if invoke fails, exit non-zero and show output.
+            out="$(az aks command invoke -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
+              echo "ERROR: az aks command invoke failed"
+              echo "${out}"
+              return 1
+            }
+
+            python3 - <<'PY' <<<"${out}"
+          import json,sys
+          try:
+              obj=json.load(sys.stdin)
+          except Exception as e:
+              print("ERROR: Expected JSON from az aks command invoke, got:")
+              sys.stdout.write(sys.stdin.read())
+              raise
+
+          logs=obj.get("logs") or ""
+          # logs may include trailing newlines; strip safely
+          print(str(logs).rstrip())
+          PY
+          }
+
+          export -f aks_run
+          BASH
+
+      # -----------------------------------------------------------------------
       # Cluster bootstrap (namespace always; ingress + netpol test-only)
       # -----------------------------------------------------------------------
-
       - name: Ensure namespace exists (dev/test)
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
@@ -222,7 +269,7 @@ jobs:
           echo "Rendered manifests (first 80 lines):"
           head -n 80 "${OUT_FILE}"
 
-      - name: Apply Helm-rendered manifests via AKS Run Command (private cluster safe)
+      - name: Apply Helm-rendered manifests via AKS Run Command
         shell: bash
         run: |
           set -euo pipefail
@@ -230,7 +277,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command "set -euo pipefail; ls -la; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
+            --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
       # --------------------------
       # Wait + Smoke tests (robust name resolution)
@@ -240,14 +287,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          aks_run() {
-            az aks command invoke \
-              -g "${RG}" \
-              -n "${AKS}" \
-              --command "$1" \
-              -o json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("logs","").rstrip())'
-          }
+          source "$RUNNER_TEMP/aks_run.sh"
 
           DEPLOY_REF="$(aks_run "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
           SVC_REF="$(aks_run "kubectl -n ${ENV_NAME} get svc   -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
@@ -264,33 +304,23 @@ jobs:
           DEPLOY_NAME="${DEPLOY_REF#deploy/}"
           SVC_NAME="${SVC_REF#service/}"
 
-          echo "Resolved deploy: ${DEPLOY_NAME}"
-          echo "Resolved service: ${SVC_NAME}"
-
           echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
           echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
-
-          echo "DEPLOY_NAME=${DEPLOY_NAME}" >> "$GITHUB_ENV"
-          echo "SVC_NAME=${SVC_NAME}" >> "$GITHUB_ENV"
 
       - name: Wait for rollout
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} rollout status deploy/${{ steps.resolve.outputs.deploy_name }} --timeout=240s"
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl -n ${ENV_NAME} rollout status deploy/${{ steps.resolve.outputs.deploy_name }} --timeout=240s"
 
       - name: Smoke test service connectivity (in-cluster)
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-              sh -lc \"curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl -n ${ENV_NAME} run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            sh -lc \"curl -sS -D- http://${{ steps.resolve.outputs.svc_name }}.${ENV_NAME}.svc.cluster.local/ | tail -n 60\""
 
       # --------------------------
       # Resolve ingress host from the cluster (test)
@@ -301,14 +331,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          aks_run() {
-            az aks command invoke \
-              -g "${RG}" \
-              -n "${AKS}" \
-              --command "$1" \
-              -o json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("logs","").rstrip())'
-          }
+          source "$RUNNER_TEMP/aks_run.sh"
 
           INGRESS_REF="$(aks_run "kubectl -n ${ENV_NAME} get ingress -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
           if [ -z "$INGRESS_REF" ]; then
@@ -326,44 +349,33 @@ jobs:
 
           INGRESS_NAME="${INGRESS_REF#ingress/}"
 
-          echo "Resolved ingress: ${INGRESS_NAME}"
-          echo "Resolved ingress host: [$HOST]"
-
           echo "ingress_name=${INGRESS_NAME}" >> "$GITHUB_OUTPUT"
           echo "ingress_host=${HOST}" >> "$GITHUB_OUTPUT"
-
-          echo "INGRESS_NAME=${INGRESS_NAME}" >> "$GITHUB_ENV"
-          echo "INGRESS_HOST=${HOST}" >> "$GITHUB_ENV"
 
       - name: Smoke test ingress routing (in-cluster curl via ingress)
         shell: bash
         run: |
           set -euo pipefail
+          source "$RUNNER_TEMP/aks_run.sh"
 
           HOST="app.${ENV_NAME}.local"
           if [ "${ENV_NAME}" = "test" ]; then
             HOST="${{ steps.ingress.outputs.ingress_host }}"
           fi
 
-          echo "Using Host header: [$HOST]"
-
-          OUT="$(az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "HOST='${HOST}' sh -lc \"kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
-              curl -sS -D- -H \\\"Host: \\$HOST\\\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\"")"
-
-          echo "$OUT" | tail -n 120
+          aks_run "HOST='${HOST}' sh -lc \"kubectl -n ${ENV_NAME} run curl-ing --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
+            curl -sS -D- -H \\\"Host: \\$HOST\\\" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/\""
 
       - name: Debug dump on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl get pods -A -o wide"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get all -o wide"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} describe deploy -l app.kubernetes.io/instance=${HELM_RELEASE}"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} describe svc -l app.kubernetes.io/instance=${HELM_RELEASE}"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get endpointslices -o wide"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ${ENV_NAME} get networkpolicy -o wide"
-          az aks command invoke -g "${RG}" -n "${AKS}" --command "kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200"
+          source "$RUNNER_TEMP/aks_run.sh"
+          aks_run "kubectl get pods -A -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} get all -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} describe deploy -l app.kubernetes.io/instance=${HELM_RELEASE} || true"
+          aks_run "kubectl -n ${ENV_NAME} describe svc -l app.kubernetes.io/instance=${HELM_RELEASE} || true"
+          aks_run "kubectl -n ${ENV_NAME} get endpointslices -o wide || true"
+          aks_run "kubectl -n ${ENV_NAME} get networkpolicy -o wide || true"
+          aks_run "kubectl -n ingress-nginx logs deploy/ingress-nginx-controller --tail=200 || true"
