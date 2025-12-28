@@ -266,9 +266,9 @@ jobs:
           if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
             echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
             echo "--- debug: deployments ---"
-            aks_run "kubectl -n ${ENV_NAME} get deploy -l app.kubernetes.io/instance=${HELM_RELEASE} -o wide || true"
+            aks_run kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
             echo "--- debug: services ---"
-            aks_run "kubectl -n ${ENV_NAME} get svc -l app.kubernetes.io/instance=${HELM_RELEASE} -o wide || true"
+            aks_run kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
             exit 1
           fi
 
@@ -307,14 +307,14 @@ jobs:
           INGRESS_REF="$(aks_run "kubectl -n ${ENV_NAME} get ingress -l app.kubernetes.io/instance=${HELM_RELEASE} -o name | head -n 1")"
           if [ -z "$INGRESS_REF" ]; then
             echo "ERROR: No ingress found for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
-            aks_run "kubectl -n ${ENV_NAME} get ingress -o wide || true"
+            aks_run kubectl -n "${ENV_NAME}" get ingress -o wide || true
             exit 1
           fi
 
-          HOST="$(aks_run "kubectl -n ${ENV_NAME} get ${INGRESS_REF} -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || true")"
+          HOST="$(aks_run kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || true)"
           if [ -z "$HOST" ]; then
             echo "ERROR: Ingress host not found on ${INGRESS_REF}"
-            aks_run "kubectl -n ${ENV_NAME} get ${INGRESS_REF} -o yaml | sed -n '1,160p' || true"
+            aks_run kubectl -n "${ENV_NAME}" get "${INGRESS_REF}" -o yaml | sed -n '1,160p' || true
             exit 1
           fi
 
