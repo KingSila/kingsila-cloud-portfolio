@@ -88,11 +88,17 @@ jobs:
       # -----------------------------------------------------------------------
       # Helper: robust AKS Run Command wrapper (script on PATH; works across steps)
       # -----------------------------------------------------------------------
-      - name: Define aks_run helper
+      - name: Install aks_run helper
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/aks_run.sh" <<'BASH'
+
+          echo "RUNNER_TEMP=${RUNNER_TEMP:-<unset>}"
+          mkdir -p "${RUNNER_TEMP}"
+          test -w "${RUNNER_TEMP}"
+
+          cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
+          #!/usr/bin/env bash
           set -euo pipefail
 
           : "${RG:?RG env var is required}"
