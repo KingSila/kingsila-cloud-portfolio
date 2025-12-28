@@ -91,54 +91,53 @@ jobs:
           mkdir -p "${RUNNER_TEMP}"
           test -w "${RUNNER_TEMP}"
 
-          # Python parser (no shell quoting pain)
-          cat > "${RUNNER_TEMP}/aks_run_parse.py" <<'PY'
-          import json, sys
+          # Write Python parser safely (no heredoc)
+          printf '%s\n' \
+          'import json, sys' \
+          'raw = sys.stdin.read()' \
+          'try:' \
+          '    obj = json.loads(raw)' \
+          'except Exception:' \
+          '    print("ERROR: Expected JSON from az aks command invoke, got:")' \
+          '    print(raw)' \
+          '    raise' \
+          'logs = obj.get("logs") or ""' \
+          'print(str(logs).rstrip())' \
+          > "${RUNNER_TEMP}/aks_run_parse.py"
 
-          raw = sys.stdin.read()
-          try:
-              obj = json.loads(raw)
-          except Exception:
-              print("ERROR: Expected JSON from az aks command invoke, got:")
-              print(raw)
-              raise
+                    # Write aks_run safely (no heredoc)
+                    printf '%s\n' \
+          '#!/usr/bin/env bash' \
+          'set -euo pipefail' \
+          '' \
+          ': "${RG:?RG env var is required}"' \
+          ': "${AKS:?AKS env var is required}"' \
+          '' \
+          'if [ "$#" -lt 1 ]; then' \
+          '  echo "Usage: aks_run <command...>"' \
+          '  exit 2' \
+          'fi' \
+          '' \
+          'cmd="$*"' \
+          '' \
+          'out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {' \
+          '  echo "ERROR: az aks command invoke failed"' \
+          '  echo "${out}"' \
+          '  exit 1' \
+          '}' \
+          '' \
+          'printf "%s" "${out}" | python3 "${RUNNER_TEMP}/aks_run_parse.py"' \
+          > "${RUNNER_TEMP}/aks_run"
 
-          logs = obj.get("logs") or ""
-          print(str(logs).rstrip())
-          PY
+                    chmod +x "${RUNNER_TEMP}/aks_run"
+                    echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
 
-          # Bash wrapper
-          cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
-          #!/usr/bin/env bash
-          set -euo pipefail
+                    echo "Created:"
+                    ls -la "${RUNNER_TEMP}/aks_run" "${RUNNER_TEMP}/aks_run_parse.py"
 
-          : "${RG:?RG env var is required}"
-          : "${AKS:?AKS env var is required}"
+                    echo "Syntax check:"
+                    bash -n "${RUNNER_TEMP}/aks_run"
 
-          if [ "$#" -lt 1 ]; then
-            echo "Usage: aks_run <command...>"
-            exit 2
-          fi
-
-          cmd="$*"
-
-          out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
-            echo "ERROR: az aks command invoke failed"
-            echo "${out}"
-            exit 1
-          }
-
-          printf '%s' "${out}" | python3 "${RUNNER_TEMP}/aks_run_parse.py"
-          BASH
-
-          chmod +x "${RUNNER_TEMP}/aks_run"
-          echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
-
-          echo "Created:"
-          ls -la "${RUNNER_TEMP}/aks_run" "${RUNNER_TEMP}/aks_run_parse.py"
-
-          echo "Sanity check (syntax):"
-          bash -n "${RUNNER_TEMP}/aks_run"
 
                 # -----------------------------------------------------------------------
                 # Cluster bootstrap (namespace always; ingress + netpol test-only)
