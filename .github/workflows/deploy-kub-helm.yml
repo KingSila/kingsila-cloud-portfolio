@@ -276,8 +276,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command 'set -euo pipefail; f="$(ls -1 *.yaml | head -n1)"; test -n "$f"; test -s "$f"; kubectl apply -f "$f"'
-
+            --command 'set -euo pipefail; f="$(ls -1 *.yaml | head -n1)"; kubectl apply -n "'"${ENV_NAME}"'" -f "$f"'
 
       # --------------------------
       # Wait + Smoke tests
