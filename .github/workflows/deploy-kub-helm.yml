@@ -22,11 +22,11 @@ env:
 
 jobs:
   deploy:
-    # Private AKS requires network access from inside the VNet.
     runs-on: [self-hosted, linux]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -95,152 +95,152 @@ jobs:
           test -w "${RUNNER_TEMP}"
 
           cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
-            #!/usr/bin/env bash
-            set -euo pipefail
+          #!/usr/bin/env bash
+          set -euo pipefail
 
-            : "${RG:?RG env var is required}"
-            : "${AKS:?AKS env var is required}"
+          : "${RG:?RG env var is required}"
+          : "${AKS:?AKS env var is required}"
 
-            if [ "$#" -lt 1 ]; then
+          if [ "$#" -lt 1 ]; then
             echo "Usage: aks_run <command...>"
             exit 2
-            fi
+          fi
 
-            cmd="$*"
+          cmd="$*"
 
-            out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
+          out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
             echo "ERROR: az aks command invoke failed"
             echo "${out}"
             exit 1
-            }
+          }
 
-            python3 - <<'PY' <<<"${out}"
-            import json, sys
-            raw = sys.stdin.read()
-            try:
-                obj = json.loads(raw)
-            except Exception:
-                print("ERROR: Expected JSON from az aks command invoke, got:")
-                print(raw)
-                raise
+          python3 - <<'PY' <<<"${out}"
+          import json, sys
+          raw = sys.stdin.read()
+          try:
+              obj = json.loads(raw)
+          except Exception:
+              print("ERROR: Expected JSON from az aks command invoke, got:")
+              print(raw)
+              raise
 
-            logs = obj.get("logs")
-            if logs is None:
-                logs = ""
-            print(str(logs).rstrip())
-            PY
-            BASH
+          logs = obj.get("logs")
+          if logs is None:
+              logs = ""
+          print(str(logs).rstrip())
+          PY
+          BASH
 
-                    chmod +x "${RUNNER_TEMP}/aks_run"
-                    echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
+          chmod +x "${RUNNER_TEMP}/aks_run"
+          echo "AKS_RUN=${RUNNER_TEMP}/aks_run" >> "$GITHUB_ENV"
 
-                    echo "Created:"
-                    ls -la "${RUNNER_TEMP}/aks_run"
+          echo "Created:"
+          ls -la "${RUNNER_TEMP}/aks_run"
 
-                # -----------------------------------------------------------------------
-                # Cluster bootstrap (namespace always; ingress + netpol test-only)
-                # -----------------------------------------------------------------------
-                - name: Ensure namespace exists (dev/test)
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    "$AKS_RUN" kubectl get ns "${ENV_NAME}" >/dev/null 2>&1 || "$AKS_RUN" kubectl create ns "${ENV_NAME}"
+      # -----------------------------------------------------------------------
+      # Cluster bootstrap (namespace always; ingress + netpol test-only)
+      # -----------------------------------------------------------------------
+      - name: Ensure namespace exists (dev/test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AKS_RUN" kubectl get ns "${ENV_NAME}" >/dev/null 2>&1 || "$AKS_RUN" kubectl create ns "${ENV_NAME}"
 
-                - name: Install NGINX ingress controller (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                        -g "${RG}" \
-                        -n "${AKS}" \
-                        --file "infra/k8s/system/install-ingress-nginx.sh" \
-                        --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
+      - name: Install NGINX ingress controller (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "infra/k8s/system/install-ingress-nginx.sh" \
+            --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
 
-                - name: Apply NetworkPolicy default-deny-all (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                        -g "${RG}" \
-                        -n "${AKS}" \
-                        --file infra/k8s/overlays/test/networkpolicy-default-deny.yaml \
-                        --command "kubectl apply -f networkpolicy-default-deny.yaml"
+      - name: Apply NetworkPolicy default-deny-all (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-default-deny.yaml \
+            --command "kubectl apply -f networkpolicy-default-deny.yaml"
 
-                - name: Apply NetworkPolicy allow-dns-egress (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                        -g "${RG}" \
-                        -n "${AKS}" \
-                        --file infra/k8s/overlays/test/networkpolicy-allow-dns-egress.yaml \
-                        --command "kubectl apply -f networkpolicy-allow-dns-egress.yaml"
+      - name: Apply NetworkPolicy allow-dns-egress (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file infra/k8s/overlays/test/networkpolicy-allow-dns-egress.yaml \
+            --command "kubectl apply -f networkpolicy-allow-dns-egress.yaml"
 
-                - name: Create extra NetworkPolicy files (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
+      - name: Create extra NetworkPolicy files (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
-                    cat > "$RUNNER_TEMP/networkpolicy-allow-egress-within-test.yaml" <<'YAML'
-            apiVersion: networking.k8s.io/v1
-            kind: NetworkPolicy
-            metadata:
+          cat > "$RUNNER_TEMP/networkpolicy-allow-egress-within-test.yaml" <<'YAML'
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
             name: allow-egress-within-test
             namespace: test
-            spec:
+          spec:
             podSelector: {}
             policyTypes:
             - Egress
             egress:
             - to:
-                - podSelector: {}
-            YAML
+              - podSelector: {}
+          YAML
 
-                    cat > "$RUNNER_TEMP/networkpolicy-allow-test-to-app.yaml" <<'YAML'
-            apiVersion: networking.k8s.io/v1
-            kind: NetworkPolicy
-            metadata:
+          cat > "$RUNNER_TEMP/networkpolicy-allow-test-to-app.yaml" <<'YAML'
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
             name: allow-test-to-app
             namespace: test
-            spec:
+          spec:
             podSelector:
-                matchLabels:
+              matchLabels:
                 app.kubernetes.io/instance: golden-app
             policyTypes:
             - Ingress
             ingress:
             - from:
-                - podSelector: {}
-                ports:
-                - protocol: TCP
+              - podSelector: {}
+              ports:
+              - protocol: TCP
                 port: 8080
-            YAML
+          YAML
 
-                - name: Apply NetworkPolicy allow-egress-within-namespace (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                        -g "${RG}" \
-                        -n "${AKS}" \
-                        --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
-                        --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
+      - name: Apply NetworkPolicy allow-egress-within-namespace (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-egress-within-test.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-egress-within-test.yaml"
 
-                - name: Apply NetworkPolicy allow-test-to-app (test)
-                    if: ${{ inputs.environment == 'test' }}
-                    shell: bash
-                    run: |
-                    set -euo pipefail
-                    az aks command invoke \
-                        -g "${RG}" \
-                        -n "${AKS}" \
-                        --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
-                        --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
+      - name: Apply NetworkPolicy allow-test-to-app (test)
+        if: ${{ inputs.environment == 'test' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --file "${RUNNER_TEMP}/networkpolicy-allow-test-to-app.yaml" \
+            --command "kubectl apply -f networkpolicy-allow-test-to-app.yaml"
 
       - name: Apply NetworkPolicy allow-ingress-nginx-to-app (test)
         if: ${{ inputs.environment == 'test' }}
@@ -300,7 +300,7 @@ jobs:
             --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
       # --------------------------
-      # Wait + Smoke tests (robust name resolution)
+      # Wait + Smoke tests
       # --------------------------
       - name: Resolve workload names from cluster (post-deploy)
         id: resolve
@@ -360,8 +360,6 @@ jobs:
             exit 1
           fi
 
-          INGRESS_NAME="${INGRESS_REF#ingress/}"
-          echo "ingress_name=${INGRESS_NAME}" >> "$GITHUB_OUTPUT"
           echo "ingress_host=${HOST}" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test ingress routing (in-cluster curl via ingress)
