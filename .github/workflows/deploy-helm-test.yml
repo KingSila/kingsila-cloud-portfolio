@@ -67,8 +67,17 @@ jobs:
           version: latest
 
       # -----------------------------------------------------------------------
-      # TEST ONLY: cluster bootstrap (ingress + namespace + networkpolicy)
+      # Cluster bootstrap (namespace always; ingress + netpol test-only)
       # -----------------------------------------------------------------------
+
+      - name: Ensure namespace exists (dev/test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
@@ -80,16 +89,6 @@ jobs:
             -n "${AKS}" \
             --file "infra/k8s/system/install-ingress-nginx.sh" \
             --command "set -euxo pipefail; ls -la; bash ./install-ingress-nginx.sh"
-
-      - name: Ensure test namespace exists (test only)
-        if: ${{ inputs.environment == 'test' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl get ns test >/dev/null 2>&1 || kubectl create ns test"
 
       - name: Apply NetworkPolicy default-deny-all (test)
         if: ${{ inputs.environment == 'test' }}
@@ -195,6 +194,7 @@ jobs:
         run: |
           set -euo pipefail
           helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
+            --namespace "${ENV_NAME}" \
             -f ./infra/k8s/golden-app/charts/values.yaml \
             -f ./infra/k8s/${ENV_NAME}/values.yaml \
             --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
@@ -210,6 +210,7 @@ jobs:
           OUT_FILE="$RUNNER_TEMP/helm-rendered.yaml"
 
           helm template "${HELM_RELEASE}" ./infra/k8s/golden-app/charts \
+            --namespace "${ENV_NAME}" \
             -f ./infra/k8s/golden-app/charts/values.yaml \
             -f ./infra/k8s/${ENV_NAME}/values.yaml \
             --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
@@ -229,7 +230,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command 'set -euo pipefail; ls -la; f=$(ls -1 *.y*ml | head -n1); test -s "$f"; kubectl apply -f "$f"'
+            --command 'set -euo pipefail; ls -la; f=$(ls -1 *.y*ml | head -n1); test -s "$f"; kubectl apply -n "'"${ENV_NAME}"'" -f "$f"'
 
       # --------------------------
       # Wait + Smoke tests (robust name resolution)
