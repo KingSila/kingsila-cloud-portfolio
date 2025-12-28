@@ -79,7 +79,7 @@ jobs:
           version: latest
 
       # -----------------------------------------------------------------------
-      # Helper: robust AKS Run Command wrapper (prevents None.rstrip crashes)
+      # Cluster bootstrap (namespace always; ingress + netpol test-only)
       # -----------------------------------------------------------------------
       - name: Define aks_run helper
         shell: bash
@@ -88,43 +88,14 @@ jobs:
           cat > "$RUNNER_TEMP/aks_run.sh" <<'BASH'
           set -euo pipefail
 
-          aks_run() {
-            local cmd="$1"
-            local out
-            # Always ask for JSON; if invoke fails, exit non-zero and show output.
-            out="$(az aks command invoke -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
-              echo "ERROR: az aks command invoke failed"
-              echo "${out}"
-              return 1
-            }
-
-            python3 - <<'PY' <<<"${out}"
-          import json,sys
-          try:
-              obj=json.load(sys.stdin)
-          except Exception as e:
-              print("ERROR: Expected JSON from az aks command invoke, got:")
-              sys.stdout.write(sys.stdin.read())
-              raise
-
-          logs=obj.get("logs") or ""
-          # logs may include trailing newlines; strip safely
-          print(str(logs).rstrip())
-          PY
-          }
-
-          export -f aks_run
-          BASH
-
-      # -----------------------------------------------------------------------
-      # Cluster bootstrap (namespace always; ingress + netpol test-only)
-      # -----------------------------------------------------------------------
       - name: Ensure namespace exists (dev/test)
         shell: bash
         run: |
           set -euo pipefail
-          source "$RUNNER_TEMP/aks_run.sh"
-          aks_run "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
+          az aks command invoke \
+            -g "${RG}" \
+            -n "${AKS}" \
+            --command "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
@@ -277,7 +248,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
+            --command 'set -euo pipefail; ls -la; f=$(ls -1 *.y*ml | head -n1); test -s "$f"; kubectl apply -f "$f"'
 
       # --------------------------
       # Wait + Smoke tests (robust name resolution)
