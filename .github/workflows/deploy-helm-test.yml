@@ -73,7 +73,7 @@ jobs:
           echo "HELM_RELEASE=${HELM_RELEASE:-<missing>}"
           echo "WI_CLIENT_ID=${WI_CLIENT_ID:-<missing>}"
 
-      - name: Guard RG/AKS set
+      - name: Guard- RG/AKS set
         shell: bash
         run: |
           set -euo pipefail
@@ -86,7 +86,7 @@ jobs:
           version: latest
 
       # -----------------------------------------------------------------------
-      # Cluster bootstrap (namespace always; ingress + netpol test-only)
+      # Helper: robust AKS Run Command wrapper (script on PATH; works across steps)
       # -----------------------------------------------------------------------
       - name: Install aks_run helper
         shell: bash
@@ -97,14 +97,50 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
 
+          : "${RG:?RG env var is required}"
+          : "${AKS:?AKS env var is required}"
+
+          if [ "$#" -lt 1 ]; then
+            echo "Usage: aks_run <command...>"
+            exit 2
+          fi
+
+          # Accept multi-arg commands safely
+          cmd="$*"
+
+          # Get JSON output; keep stderr/stdout together so failures are visible
+          out="$(az aks command invoke --only-show-errors -g "${RG}" -n "${AKS}" --command "${cmd}" -o json 2>&1)" || {
+            echo "ERROR: az aks command invoke failed"
+            echo "${out}"
+            exit 1
+          }
+
+          python3 - <<'PY' <<<"${out}"
+          import json, sys
+          raw = sys.stdin.read()
+          try:
+              obj = json.loads(raw)
+          except Exception:
+              print("ERROR: Expected JSON from az aks command invoke, got:")
+              print(raw)
+              raise
+
+          logs = obj.get("logs") or ""
+          print(str(logs).rstrip())
+          PY
+          BASH
+
+          chmod +x "$RUNNER_TEMP/aks_run"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      # -----------------------------------------------------------------------
+      # Cluster bootstrap (namespace always; ingress + netpol test-only)
+      # -----------------------------------------------------------------------
       - name: Ensure namespace exists (dev/test)
         shell: bash
         run: |
           set -euo pipefail
-          az aks command invoke \
-            -g "${RG}" \
-            -n "${AKS}" \
-            --command "kubectl get ns ${ENV_NAME} >/dev/null 2>&1 || kubectl create ns ${ENV_NAME}"
+          aks_run kubectl get ns "${ENV_NAME}" >/dev/null 2>&1 || aks_run kubectl create ns "${ENV_NAME}"
 
       - name: Install NGINX ingress controller (test)
         if: ${{ inputs.environment == 'test' }}
@@ -257,7 +293,7 @@ jobs:
             -g "${RG}" \
             -n "${AKS}" \
             --file "${MANIFEST_FILE}" \
-            --command 'set -euo pipefail; ls -la; f=$(ls -1 *.y*ml | head -n1); test -s "$f"; kubectl apply -f "$f"'
+            --command "set -euo pipefail; f=$(ls -1 *.yaml | head -n1); test -s \"$f\"; kubectl apply -f \"$f\""
 
       # --------------------------
       # Wait + Smoke tests (robust name resolution)
