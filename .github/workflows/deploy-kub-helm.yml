@@ -94,7 +94,7 @@ jobs:
           mkdir -p "${RUNNER_TEMP}"
           test -w "${RUNNER_TEMP}"
 
-            cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
+           cat > "${RUNNER_TEMP}/aks_run" <<'BASH'
             #!/usr/bin/env bash
             set -euo pipefail
 
@@ -127,6 +127,7 @@ jobs:
             print(str(logs).rstrip())
             '
             BASH
+
 
 
       # -----------------------------------------------------------------------
