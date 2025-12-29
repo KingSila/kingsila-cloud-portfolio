@@ -10,20 +10,24 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.className }}
-  ingressClassName: {{ .Values.ingress.className }}
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+
+  {{- if and (hasKey .Values.ingress "tls") (gt (len .Values.ingress.tls) 0) }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}
   {{- end }}
+
   rules:
+    {{- if and (hasKey .Values.ingress "hosts") (gt (len .Values.ingress.hosts) 0) }}
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
+          {{- if and (hasKey . "paths") (gt (len .paths) 0) }}
           {{- range .paths }}
-          - path: {{ .path }}
+          - path: {{ .path | default "/" | quote }}
             pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
@@ -31,5 +35,26 @@ spec:
                 port:
                   name: http
           {{- end }}
+          {{- else }}
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "golden-app.fullname" $ }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+    {{- else }}
+    - host: "app.local"
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "golden-app.fullname" . }}
+                port:
+                  name: http
     {{- end }}
 {{- end -}}
