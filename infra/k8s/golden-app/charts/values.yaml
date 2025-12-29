@@ -33,7 +33,12 @@ probes:
   port: 8080
 
 ingress:
-  enabled: false
+  enabled: true
   className: nginx
-  host: ""
-  path: "/"
+  annotations: {}
+  hosts:
+    - host: golden-app.test.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
