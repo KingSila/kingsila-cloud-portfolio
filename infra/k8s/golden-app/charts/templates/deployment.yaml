@@ -39,3 +39,19 @@ spec:
             capabilities:
               drop:
                 - ALL
+
+{{- if .Values.observability.enabled }}
+env:
+  - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+    valueFrom:
+      secretKeyRef:
+        name: {{ .Values.observability.appInsights.secretName | quote }}
+        key: {{ .Values.observability.appInsights.connectionStringKey | quote }}
+
+  # OpenTelemetry standard bits (works across languages)
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.observability.serviceName | quote }}
+
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "deployment.environment={{ .Values.observability.env }},service.name={{ .Values.observability.serviceName }}"
+{{- end }}

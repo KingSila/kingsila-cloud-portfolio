@@ -11,3 +11,11 @@ workloadIdentity:
 ingress:
   enabled: true
   host: test.golden.internal
+
+observability:
+  enabled: true
+  env: test
+  serviceName: golden-app
+  appInsights:
+    secretName: appinsights-connstr
+    connectionStringKey: APPLICATIONINSIGHTS_CONNECTION_STRING
