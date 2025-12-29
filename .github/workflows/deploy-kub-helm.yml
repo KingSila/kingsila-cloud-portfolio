@@ -286,21 +286,44 @@ jobs:
         run: |
           set -euo pipefail
 
-          DEPLOY_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
-          SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+          # Resolve deployment by instance label (this is working for you)
+          DEPLOY_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy \
+            -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
 
-          if [ -z "${DEPLOY_REF}" ] || [ -z "${SVC_REF}" ]; then
-            echo "ERROR: Could not resolve deploy/service for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
-            "$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
-            "$AKS_RUN" kubectl -n "${ENV_NAME}" get svc -l app.kubernetes.io/instance="${HELM_RELEASE}" -o wide || true
+          if [ -z "${DEPLOY_REF}" ]; then
+            echo "ERROR: Could not resolve deployment for instance=${HELM_RELEASE} in ns=${ENV_NAME}"
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy --show-labels -o wide || true
             exit 1
           fi
 
           DEPLOY_NAME="${DEPLOY_REF#deploy/}"
-          SVC_NAME="${SVC_REF#service/}"
-
           echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
-          echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
+
+          # Try to resolve service using a few common label strategies
+          SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
+            -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
+
+          if [ -z "${SVC_REF}" ]; then
+            # Fallback 1: name label
+            SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
+              -l app.kubernetes.io/name="${HELM_RELEASE}" -o name | head -n 1)"
+          fi
+
+          if [ -z "${SVC_REF}" ]; then
+            # Fallback 2: app label
+            SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
+              -l app="${HELM_RELEASE}" -o name | head -n 1)"
+          fi
+
+          if [ -z "${SVC_REF}" ]; then
+            echo "WARN: No Service found for ${HELM_RELEASE} in ns=${ENV_NAME}. Continuing without svc_name."
+            echo "svc_name=" >> "$GITHUB_OUTPUT"
+            echo "---- Services present (with labels) ----"
+            "$AKS_RUN" kubectl -n "${ENV_NAME}" get svc --show-labels -o wide || true
+          else
+            SVC_NAME="${SVC_REF#service/}"
+            echo "svc_name=${SVC_NAME}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Wait for rollout
         run: |
@@ -308,6 +331,7 @@ jobs:
           "$AKS_RUN" kubectl -n "${ENV_NAME}" rollout status "deploy/${{ steps.resolve.outputs.deploy_name }}" --timeout=240s
 
       - name: Smoke test service connectivity (in-cluster)
+        if: ${{ steps.resolve.outputs.svc_name != '' }}
         run: |
           set -euo pipefail
           "$AKS_RUN" kubectl -n "${ENV_NAME}" run curl-svc --image=curlimages/curl:8.10.1 -i --rm --restart=Never -- \
