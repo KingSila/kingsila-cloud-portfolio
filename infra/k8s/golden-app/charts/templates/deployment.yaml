@@ -1,5 +1,6 @@
 {{- $labels := include "golden-app.labels" . -}}
 {{- $selector := include "golden-app.selectorLabels" . -}}
+{{- $obs := .Values.observability | default dict -}}
 
 apiVersion: apps/v1
 kind: Deployment
@@ -16,9 +17,10 @@ spec:
     metadata:
       labels:
 {{ $selector | nindent 8 }}
-{{- if .Values.workloadIdentity.enabled }}
+      {{- if .Values.workloadIdentity.enabled }}
+      annotations:
         azure.workload.identity/use: "true"
-{{- end }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "golden-app.serviceAccountName" . }}
       containers:
@@ -29,6 +31,28 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+
+          {{- if or ($obs.enabled | default false) .Values.env }}
+          env:
+            {{- if ($obs.enabled | default false) }}
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $obs.appInsights.secretName | quote }}
+                  key: {{ $obs.appInsights.connectionStringKey | quote }}
+
+            - name: OTEL_SERVICE_NAME
+              value: {{ $obs.serviceName | quote }}
+
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment={{ $obs.env }},service.name={{ $obs.serviceName }}"
+            {{- end }}
+
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+
           resources:
 {{ toYaml .Values.resources | nindent 12 }}
           securityContext:
@@ -39,19 +63,3 @@ spec:
             capabilities:
               drop:
                 - ALL
-
-{{- if .Values.observability.enabled }}
-env:
-  - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-    valueFrom:
-      secretKeyRef:
-        name: {{ .Values.observability.appInsights.secretName | quote }}
-        key: {{ .Values.observability.appInsights.connectionStringKey | quote }}
-
-  # OpenTelemetry standard bits (works across languages)
-  - name: OTEL_SERVICE_NAME
-    value: {{ .Values.observability.serviceName | quote }}
-
-  - name: OTEL_RESOURCE_ATTRIBUTES
-    value: "deployment.environment={{ .Values.observability.env }},service.name={{ .Values.observability.serviceName }}"
-{{- end }}

@@ -42,3 +42,4 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+env: []

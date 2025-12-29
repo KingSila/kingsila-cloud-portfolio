@@ -14,7 +14,7 @@ ingress:
 
 observability:
   enabled: true
-  env: test
+  env: "test"
   serviceName: golden-app
   appInsights:
     secretName: appinsights-connstr
