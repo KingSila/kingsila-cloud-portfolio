@@ -1,4 +1,4 @@
-# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-26)
+# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-29)
 **Azure · Terraform · GitHub Actions · AKS · SRE**
 
 ---
@@ -34,7 +34,7 @@ Achievements:
 - Destroy protections + approvals
 - Tagging & cost governance groundwork
 - Management groups + RBAC scaffolding
-- Resolved drift issues
+- Drift issues resolved
 - Finalised environment lifecycle model
 - Central Key Vault pattern implemented
 - RBAC for CI (management + data plane)
@@ -57,71 +57,50 @@ Completed:
 - App Service + KV + telemetry integration validated
 - Destroy pipeline with env-specific backend config
 - Hardened Key Vault `network_acls` (tfsec CRITICAL resolved)
-- Added “deny public endpoints” policies
-- Security architecture documentation drafted (`/docs/security.md`)
-- Defender leftover state validated
+- “Deny public endpoints” policies added
+- Security architecture documentation (`/docs/security.md`)
+- Defender residual state validated
 
 ---
 
 ## ☸️ Weeks 7–8: AKS Platform Layer
-**Status: ~85% Complete** ✅
+**Status: 100% Complete** ✅
 
-### Completed (Major Progress)
-- [x] AKS module outputs (cluster name, node RG, OIDC issuer URL)
-- [x] Dev **and Test** Kubernetes manifests created and validated
+### Completed (Platform Layer Fully Productised)
+- AKS module outputs (cluster name, node RG, OIDC issuer URL)
+- Dev **and Test** Kubernetes manifests created and validated:
   - Namespace
   - ServiceAccount
   - Deployment (hardened security context)
-- [x] Dev and Test AKS cluster lifecycle exercised (create / destroy / recover)
-- [x] Workload Identity wired and validated in-cluster
-- [x] NGINX ingress controller deployed and configured
-- [x] Ingress routing validated end-to-end (HTTP 200 confirmed)
-- [x] Default-deny NetworkPolicy baseline implemented
-- [x] Fine-grained allow NetworkPolicies:
+- Dev and Test AKS cluster lifecycle exercised (create / destroy / recover)
+- Workload Identity wired and validated in-cluster
+- Private AKS access solved via `az aks command invoke`
+- NGINX ingress controller deployed and configured
+- Ingress routing validated end-to-end (HTTP 200 confirmed)
+- Default-deny NetworkPolicy baseline implemented
+- Fine-grained allow NetworkPolicies:
   - DNS egress
   - ingress-nginx → app
   - namespace-local traffic
-- [x] Private AKS access solved via `az aks command invoke`
-- [x] GitHub Actions AKS deployment pipeline stabilised (dev/test)
-- [x] Service and ingress smoke tests added to CI
-- [x] CI validates **runtime behaviour**, not just manifests
-
-### Remaining (Small, Non-Risky)
-- [ ] Helm base “golden chart”
-- [ ] Runtime standards documentation (`/docs/platform-runtime.md`)
-## ☸️ Weeks 7–8: AKS Platform Layer — Actively Under Construction
-**Status: ~30% Complete**
-
-### Completed / In Progress
-- [x] AKS module outputs (cluster name, node RG, OIDC issuer URL)
-- [x] Dev Kubernetes manifests created
-  - Namespace
-  - ServiceAccount
-  - Deployment (hardened security context)
-- [x] Dev AKS cluster lifecycle exercised (create / destroy / recover)
-- [x] Initial ingress-nginx controller deployed in dev
-- [x] GitHub Actions groundwork for AKS deploy pipeline (dev/test split)
-- [ ] Workload identity end-to-end test (AKS → Azure)
-- [ ] Stabilise ingress access pattern for private AKS
-- [ ] Prepare test environment AKS deployment pipeline (separate cluster + namespace)
-
-### Remaining for Weeks 7–8
-- AKS module enhancements (node pools, autoscaling, logging, metrics)
-- Standardise namespace + baseline policies per environment
-- Build base Helm “golden chart”
-- Wire workload identity consistently across dev/test
-- Runtime standards documentation (`/docs/platform-runtime.md`)
+- GitHub Actions AKS deployment pipeline stabilised (dev/test)
+- Service and ingress smoke tests added to CI
+- CI validates **runtime behaviour**, not just manifests
+- **Helm base “golden chart” implemented**
+- **Helm standardisation completed across environments**
+- **Runtime standards documentation completed (`/docs/platform-runtime.md`)**
 
 ---
 
 ## 🔭 Weeks 9–10: Observability, SRE & Reliability
-**Status: ~10% Planned**
+**Status: Planned (~10%)**
 
 Planned:
 - AKS metrics, logs, and traces
-- Application Insights + Container Insights alignment
+- Container Insights + Application Insights alignment
 - Grafana dashboards
-- HPA, readiness/liveness probes, PDBs
+- HPA configuration
+- Readiness / liveness probes
+- PodDisruptionBudgets
 - Alerting rules (cluster + workload)
 - SLO definitions
 - Reliability documentation (`/docs/sre.md`)
@@ -129,7 +108,7 @@ Planned:
 ---
 
 ## 🎨 Weeks 11–12: Platform Packaging & Career Positioning
-**Status: ~5% Planned**
+**Status: Planned (~5%)**
 
 Planned:
 - Architecture diagrams (Hub-Spoke + AKS + CI/CD)
@@ -137,26 +116,19 @@ Planned:
 - 10-minute internal-style presentation
 - Promotion / career narrative
 - CV and LinkedIn updates
-- Platform overview in README
-- 10-minute internal-style presentation
-- Promotion narrative
-- CV updates
 - Optional: article or recorded walkthrough
 
 ---
 
 # 📊 Overall Progress
 
-**Current Progress:** **~78%**
-**Current Progress:** **~72%**
+**Current Progress: ~86–88%**
 
-### Breakdown:
+### Breakdown
 - Weeks 1–4 → **100%**
 - Weeks 5–6 → **100%**
-- Weeks 7–8 → **~85%**
-- Weeks 9–12 → **~10% planned**
-- Weeks 7–8 → **~30% in progress**
-- Weeks 9–12 → **0%**
+- Weeks 7–8 → **100%**
+- Weeks 9–12 → **Planned**
 
 ---
 
@@ -168,33 +140,23 @@ Planned:
 - Azure identity + Key Vault patterns
 - Policy-as-Code and security scanning
 - Governance guardrails
-- **AKS platform fully validated (private cluster, ingress, networking)**
+- **Private AKS platform fully validated**
 - **Ingress + NetworkPolicy solved under real constraints**
+- **Helm golden chart and standardised app delivery**
+- **Runtime standards documented and enforced**
 
 ### 🚀 In Progress
-- Helm standardisation
-- Runtime documentation
-- Observability planning
+- Observability design
+- SRE patterns
 
 ### 🔜 Coming Next
-- Helm golden chart
 - TLS + cert-manager
-- Observability and SRE patterns
-- Production-ready AKS rollout narrative
+- Observability and alerting
+- SRE documentation
+- Production-readiness narrative
 
 ---
 
-**You are now well past the most technically risky phase of the 12-week platform engineering journey. The remaining work is refinement, visibility, and storytelling — not core engineering risk.**
-- AKS cluster foundation + dev workloads
-
-### 🚀 In Progress
-- AKS workload identity validation
-- Ingress hardening for private AKS
-- Dev/test AKS deployment pipelines
-- Runtime standardisation
-
-### 🔜 Coming Next
-- Helm golden chart
-- Production-grade ingress
-- AKS app delivery pipeline
-- Observability and SRE patterns
+**At this point, the platform is no longer a “learning exercise.”
+It is a coherent, repeatable, defensible engineering system.
+The remaining work is about signal, not survival.**
