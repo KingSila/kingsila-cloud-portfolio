@@ -57,5 +57,5 @@
 ---
 
 ## 📌 Summary
-The day wrapped up with Terraform modules cleaned, policies corrected, secrets decluttered, and documentation aligned.  
+The day wrapped up with Terraform modules cleaned, policies corrected, secrets decluttered, and documentation aligned.
 Everything now behaves more predictably, with fewer ghosts lurking in `tfvars` or GitHub secrets.
