@@ -82,6 +82,13 @@ jobs:
         with:
           version: latest
 
+      - name: Helm upgrade (test)
+        run: |
+          cd infra/k8s/golden-app/charts
+          helm upgrade --install golden-app . -n test -f values.yaml -f values-test.yaml
+          helm -n test list
+          kubectl -n test get pods
+
       # -----------------------------------------------------------------------
       # Helper: robust AKS Run Command wrapper (AKS_RUN)
       # -----------------------------------------------------------------------
