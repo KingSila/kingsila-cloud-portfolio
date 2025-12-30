@@ -2,10 +2,9 @@ replicaCount: 1
 
 nameOverride: ""
 fullnameOverride: ""
-
 image:
-  repository: ghcr.io/kubernetes-e2e-test-images/agnhost
-  tag: "2.45"
+  repository: acrkingsilaplatform.azurecr.io/golden-app
+  tag: ""
   pullPolicy: IfNotPresent
 
 resources:

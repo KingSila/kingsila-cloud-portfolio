@@ -1,0 +1,74 @@
+name: Build & Push Golden .NET Image (ACR)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/golden-dotnet-app/**"
+      - ".github/workflows/build-golden-dotnet-image.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: acrkingsilaplatform
+  IMAGE_NAME: golden-app
+  APP_PATH: golden-dotnet-app
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Compute image tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ACR_LOGIN_SERVER=${ACR_NAME}.azurecr.io" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Login to ACR
+        shell: bash
+        run: |
+          set -euo pipefail
+          az acr login -n "$ACR_NAME"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}"
+
+          docker buildx build \
+            --platform linux/amd64 \
+            -t "${IMAGE}:${IMAGE_TAG_SHA}" \
+            -t "${IMAGE}:latest" \
+            --push \
+            "${APP_PATH}"
+
+      - name: Show pushed tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Pushed:"
+          echo "  ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG_SHA}"
+          echo "  ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest"
+
+      - name: Resolve image tag
+        run: |
+            echo "IMAGE_TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
