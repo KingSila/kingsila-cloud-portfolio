@@ -13,8 +13,12 @@ permissions:
 
 env:
   ACR_NAME: acrkingsilaplatform
+  ACR_LOGIN_SERVER: acrkingsilaplatform.azurecr.io
   IMAGE_NAME: golden-app
-  APP_PATH: golden-dotnet-app
+  APP_PATH: goldendotnet-app
+  DOCKERFILE_PATH: goldendotnet-app/DockerFile
+  IMAGE_TAG_SHA: ${{ github.sha }}
+
 
 jobs:
   build-push:
@@ -47,6 +51,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+
       - name: Build and push
         shell: bash
         run: |
@@ -55,11 +60,13 @@ jobs:
           IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}"
 
           docker buildx build \
-            --platform linux/amd64 \
-            -t "${IMAGE}:${IMAGE_TAG_SHA}" \
-            -t "${IMAGE}:latest" \
-            --push \
-            "${APP_PATH}"
+          --platform linux/amd64 \
+          -f "${APP_PATH}/DockerFile" \
+          -t "${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG_SHA}" \
+          -t "${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest" \
+          --push \
+          "${APP_PATH}"
+
 
       - name: Show pushed tags
         shell: bash
