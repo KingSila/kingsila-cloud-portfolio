@@ -112,14 +112,22 @@ jobs:
           kubectl version --client
           kubelogin --version
 
-      - name: Get AKS credentials (write kubeconfig to temp)
+      - name: AKS creds + Helm deploy (test)
+        shell: bash
         env:
           KUBECONFIG: ${{ runner.temp }}/kubeconfig
         run: |
+          set -euo pipefail
+
           az aks get-credentials -g rg-kingsila-test -n aks-kingsila-test --file "$KUBECONFIG" --overwrite-existing
           kubelogin convert-kubeconfig -l azurecli --kubeconfig "$KUBECONFIG"
-          kubectl --kubeconfig "$KUBECONFIG" cluster-info
+
           kubectl --kubeconfig "$KUBECONFIG" get nodes
+
+          cd infra/k8s/golden-app/charts
+          helm --kubeconfig "$KUBECONFIG" -n test upgrade --install golden-app . -f values.yaml -f values-test.yaml
+
+          kubectl --kubeconfig "$KUBECONFIG" -n test get pods
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
