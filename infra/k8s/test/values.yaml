@@ -1,8 +1,8 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/kubernetes-e2e-test-images/agnhost
-  tag: "2.45"
+  repository: curlimages/curl
+  tag: "8.10.1"
 
 workloadIdentity:
   enabled: true
