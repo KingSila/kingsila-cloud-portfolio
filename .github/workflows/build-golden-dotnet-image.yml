@@ -16,7 +16,7 @@ env:
   ACR_LOGIN_SERVER: acrkingsilaplatform.azurecr.io
   IMAGE_NAME: golden-app
   APP_PATH: goldendotnet-app
-  DOCKERFILE_PATH: goldendotnet-app/Dockerfile
+  DOCKERFILE_PATH: goldendotnet-app/DockerFile
 
 
 
@@ -61,7 +61,7 @@ jobs:
 
           docker buildx build \
             --platform linux/amd64 \
-            -f "${APP_PATH}/Dockerfile" \
+            -f "${APP_PATH}/DockerFile" \
             -t "${IMAGE}:${IMAGE_TAG}" \
             -t "${IMAGE}:latest" \
             --push \
