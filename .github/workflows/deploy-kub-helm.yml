@@ -77,56 +77,41 @@ jobs:
           : "${RG:?missing RG}"
           : "${AKS:?missing AKS}"
 
-      - name: Install kubectl + kubelogin (no sudo, hardened)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Who am I?"
-          id
-          echo "RUNNER_TEMP=$RUNNER_TEMP"
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          df -h || true
-
-          BIN_DIR="$RUNNER_TEMP/bin"
-          mkdir -p "$BIN_DIR"
-          echo "$BIN_DIR" >> "$GITHUB_PATH"
-
-          # --- kubectl ---
-          KVER="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
-          echo "Installing kubectl $KVER"
-          curl -fSL --retry 5 --retry-delay 2 -o "$RUNNER_TEMP/kubectl" \
-            "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl"
-          chmod +x "$RUNNER_TEMP/kubectl"
-          mv "$RUNNER_TEMP/kubectl" "$BIN_DIR/kubectl"
-
-          # --- kubelogin ---
-          KLOGIN_VER="$(curl -fsSL https://api.github.com/repos/Azure/kubelogin/releases/latest | grep -m1 '"tag_name":' | cut -d'"' -f4)"
-          echo "Installing kubelogin $KLOGIN_VER"
-          curl -fSL --retry 5 --retry-delay 2 -o "$RUNNER_TEMP/kubelogin.zip" \
-            "https://github.com/Azure/kubelogin/releases/download/${KLOGIN_VER}/kubelogin-linux-amd64.zip"
-          unzip -o "$RUNNER_TEMP/kubelogin.zip" -d "$RUNNER_TEMP/kubelogin"
-          mv "$RUNNER_TEMP/kubelogin/bin/linux_amd64/kubelogin" "$BIN_DIR/kubelogin"
-          chmod +x "$BIN_DIR/kubelogin"
-
-          kubectl version --client
-          kubelogin --version
-
-      - name: AKS creds + Helm deploy (test)
+      - name: AKS kubeconfig (test)
         shell: bash
         env:
           KUBECONFIG: ${{ runner.temp }}/kubeconfig
         run: |
           set -euo pipefail
 
-          az aks get-credentials -g rg-kingsila-test -n aks-kingsila-test --file "$KUBECONFIG" --overwrite-existing
+          # Prove tools exist on the runner
+          which kubectl
+          kubectl version --client
+          which kubelogin
+          kubelogin --version
+
+          # Build kubeconfig for the private AAD-enabled cluster
+          az aks get-credentials \
+            -g rg-kingsila-test \
+            -n aks-kingsila-test \
+            --file "$KUBECONFIG" \
+            --overwrite-existing
+
+          # Convert kubeconfig for AAD
           kubelogin convert-kubeconfig -l azurecli --kubeconfig "$KUBECONFIG"
 
+          # Sanity check: should NOT be localhost
+          kubectl --kubeconfig "$KUBECONFIG" config view --minify | grep server
           kubectl --kubeconfig "$KUBECONFIG" get nodes
 
+      - name: Helm deploy (test)
+        shell: bash
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: |
+          set -euo pipefail
           cd infra/k8s/golden-app/charts
           helm --kubeconfig "$KUBECONFIG" -n test upgrade --install golden-app . -f values.yaml -f values-test.yaml
-
           kubectl --kubeconfig "$KUBECONFIG" -n test get pods
 
       - name: Setup Helm
