@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
+app.Logger.LogWarning("AI_CONNSTR={conn}", Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING"));
+
 
 app.MapGet("/", () =>
 {
