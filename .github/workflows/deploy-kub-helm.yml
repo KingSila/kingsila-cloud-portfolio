@@ -77,9 +77,30 @@ jobs:
           : "${RG:?missing RG}"
           : "${AKS:?missing AKS}"
 
-      - name: Install kubelogin + kubectl
+      - name: Install kubectl + kubelogin (no sudo)
+        shell: bash
         run: |
-          az aks install-cli
+          set -euo pipefail
+
+          BIN_DIR="$RUNNER_TEMP/bin"
+          mkdir -p "$BIN_DIR"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+
+          # kubectl (stable)
+          KVER="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+          curl -L -o "$BIN_DIR/kubectl" "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl"
+          chmod +x "$BIN_DIR/kubectl"
+
+          # kubelogin (latest)
+          KLOGIN_VER="$(curl -s https://api.github.com/repos/Azure/kubelogin/releases/latest | grep -m1 '"tag_name":' | cut -d'"' -f4)"
+          curl -L -o "$RUNNER_TEMP/kubelogin.zip" "https://github.com/Azure/kubelogin/releases/download/${KLOGIN_VER}/kubelogin-linux-amd64.zip"
+          unzip -o "$RUNNER_TEMP/kubelogin.zip" -d "$RUNNER_TEMP/kubelogin"
+          mv "$RUNNER_TEMP/kubelogin/bin/linux_amd64/kubelogin" "$BIN_DIR/kubelogin"
+          chmod +x "$BIN_DIR/kubelogin"
+
+          kubectl version --client
+          kubelogin --version
+
 
       - name: Get AKS credentials (write kubeconfig to temp)
         env:
