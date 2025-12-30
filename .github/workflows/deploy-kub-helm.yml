@@ -77,12 +77,27 @@ jobs:
           : "${RG:?missing RG}"
           : "${AKS:?missing AKS}"
 
+      - name: Install kubelogin + kubectl
+        run: |
+          az aks install-cli
+
+      - name: Get AKS credentials (write kubeconfig to temp)
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: |
+          az aks get-credentials -g rg-kingsila-test -n aks-kingsila-test --file "$KUBECONFIG" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli --kubeconfig "$KUBECONFIG"
+          kubectl --kubeconfig "$KUBECONFIG" cluster-info
+          kubectl --kubeconfig "$KUBECONFIG" get nodes
+
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:
           version: latest
 
       - name: Helm upgrade (test)
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
         run: |
           cd infra/k8s/golden-app/charts
           helm upgrade --install golden-app . -n test -f values.yaml -f values-test.yaml
