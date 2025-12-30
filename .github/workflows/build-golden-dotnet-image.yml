@@ -16,8 +16,8 @@ env:
   ACR_LOGIN_SERVER: acrkingsilaplatform.azurecr.io
   IMAGE_NAME: golden-app
   APP_PATH: goldendotnet-app
-  DOCKERFILE_PATH: goldendotnet-app/DockerFile
-  IMAGE_TAG_SHA: ${{ github.sha }}
+  DOCKERFILE_PATH: goldendotnet-app/Dockerfile
+
 
 
 jobs:
@@ -53,29 +53,23 @@ jobs:
 
 
       - name: Build and push
-        shell: bash
         run: |
           set -euo pipefail
-
+          ACR_LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+          IMAGE_TAG="${GITHUB_SHA::7}"
           IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}"
 
           docker buildx build \
-          --platform linux/amd64 \
-          -f "${APP_PATH}/DockerFile" \
-          -t "${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG_SHA}" \
-          -t "${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest" \
-          --push \
-          "${APP_PATH}"
+            --platform linux/amd64 \
+            -f "${APP_PATH}/Dockerfile" \
+            -t "${IMAGE}:${IMAGE_TAG}" \
+            -t "${IMAGE}:latest" \
+            --push \
+            "${APP_PATH}"
 
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> "$GITHUB_ENV"
+          echo "IMAGE_FULL=${IMAGE}:${IMAGE_TAG}" >> "$GITHUB_ENV"
 
-      - name: Show pushed tags
-        shell: bash
+      - name: Show pushed image
         run: |
-          set -euo pipefail
-          echo "Pushed:"
-          echo "  ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG_SHA}"
-          echo "  ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest"
-
-      - name: Resolve image tag
-        run: |
-            echo "IMAGE_TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "${IMAGE_FULL}"

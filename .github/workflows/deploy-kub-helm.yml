@@ -24,6 +24,10 @@ env:
   AKS_TEST: aks-kingsila-test
   HELM_RELEASE: golden-app
 
+  # --- Image defaults (override tag per run below) ---
+  ACR_LOGIN_SERVER: acrkingsilaplatform.azurecr.io
+  IMAGE_NAME: golden-app
+
 jobs:
   deploy:
     runs-on: [self-hosted, linux]
@@ -62,6 +66,13 @@ jobs:
 
           echo "ENV_NAME=$ENV" >> "$GITHUB_ENV"
 
+      - name: Resolve image repo + tag (from commit)
+        run: |
+          set -euo pipefail
+          echo "IMAGE_REPO=${ACR_LOGIN_SERVER}/${IMAGE_NAME}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "Resolved image: ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${GITHUB_SHA::7}"
+
       - name: Debug selected vars
         run: |
           set -euo pipefail
@@ -70,63 +81,14 @@ jobs:
           echo "ENV_NAME=${ENV_NAME:-<missing>}"
           echo "HELM_RELEASE=${HELM_RELEASE:-<missing>}"
           echo "WI_CLIENT_ID=${WI_CLIENT_ID:-<missing>}"
+          echo "IMAGE_REPO=${IMAGE_REPO:-<missing>}"
+          echo "IMAGE_TAG=${IMAGE_TAG:-<missing>}"
 
       - name: Guard RG/AKS set
         run: |
           set -euo pipefail
           : "${RG:?missing RG}"
           : "${AKS:?missing AKS}"
-
-      - name: AKS kubeconfig (test)
-        shell: bash
-        env:
-          KUBECONFIG: ${{ runner.temp }}/kubeconfig
-        run: |
-          set -euo pipefail
-
-          # Prove tools exist on the runner
-          which kubectl
-          kubectl version --client
-          which kubelogin
-          kubelogin --version
-
-          # Build kubeconfig for the private AAD-enabled cluster
-          az aks get-credentials \
-            -g rg-kingsila-test \
-            -n aks-kingsila-test \
-            --file "$KUBECONFIG" \
-            --overwrite-existing
-
-          # Convert kubeconfig for AAD
-          kubelogin convert-kubeconfig -l azurecli --kubeconfig "$KUBECONFIG"
-
-          # Sanity check: should NOT be localhost
-          kubectl --kubeconfig "$KUBECONFIG" config view --minify | grep server
-          kubectl --kubeconfig "$KUBECONFIG" get nodes
-
-      - name: Helm deploy (test)
-        shell: bash
-        env:
-          KUBECONFIG: ${{ runner.temp }}/kubeconfig
-        run: |
-          set -euo pipefail
-          cd infra/k8s/golden-app/charts
-          helm --kubeconfig "$KUBECONFIG" -n test upgrade --install golden-app . -f values.yaml -f values-test.yaml --set image.tag="${IMAGE_TAG}"
-          kubectl --kubeconfig "$KUBECONFIG" -n test get pods
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: latest
-
-      - name: Helm upgrade (test)
-        env:
-          KUBECONFIG: ${{ runner.temp }}/kubeconfig
-        run: |
-          cd infra/k8s/golden-app/charts
-          helm upgrade --install golden-app . -n test -f values.yaml -f values-test.yaml
-          helm -n test list
-          kubectl -n test get pods
 
       # -----------------------------------------------------------------------
       # Helper: robust AKS Run Command wrapper (AKS_RUN)
@@ -292,6 +254,8 @@ jobs:
             -f ./infra/k8s/golden-app/charts/values.yaml \
             -f ./infra/k8s/${ENV_NAME}/values.yaml \
             --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
+            --set image.repository="${IMAGE_REPO}" \
+            --set image.tag="${IMAGE_TAG}" \
             --debug > /dev/null
 
       # --------------------------
@@ -307,6 +271,8 @@ jobs:
             -f ./infra/k8s/golden-app/charts/values.yaml \
             -f ./infra/k8s/${ENV_NAME}/values.yaml \
             --set workloadIdentity.clientId="${WI_CLIENT_ID}" \
+            --set image.repository="${IMAGE_REPO}" \
+            --set image.tag="${IMAGE_TAG}" \
             > "${OUT_FILE}"
 
           test -s "${OUT_FILE}"
@@ -332,7 +298,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Resolve deployment by instance label (this is working for you)
           DEPLOY_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get deploy \
             -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
 
@@ -345,18 +310,15 @@ jobs:
           DEPLOY_NAME="${DEPLOY_REF#deploy/}"
           echo "deploy_name=${DEPLOY_NAME}" >> "$GITHUB_OUTPUT"
 
-          # Try to resolve service using a few common label strategies
           SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
             -l app.kubernetes.io/instance="${HELM_RELEASE}" -o name | head -n 1)"
 
           if [ -z "${SVC_REF}" ]; then
-            # Fallback 1: name label
             SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
               -l app.kubernetes.io/name="${HELM_RELEASE}" -o name | head -n 1)"
           fi
 
           if [ -z "${SVC_REF}" ]; then
-            # Fallback 2: app label
             SVC_REF="$("$AKS_RUN" kubectl -n "${ENV_NAME}" get svc \
               -l app="${HELM_RELEASE}" -o name | head -n 1)"
           fi
