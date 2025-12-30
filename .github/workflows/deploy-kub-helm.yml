@@ -111,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           cd infra/k8s/golden-app/charts
-          helm --kubeconfig "$KUBECONFIG" -n test upgrade --install golden-app . -f values.yaml -f values-test.yaml
+          helm --kubeconfig "$KUBECONFIG" -n test upgrade --install golden-app . -f values.yaml -f values-test.yaml --set image.tag="${IMAGE_TAG}"
           kubectl --kubeconfig "$KUBECONFIG" -n test get pods
 
       - name: Setup Helm
