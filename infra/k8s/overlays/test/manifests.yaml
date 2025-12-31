@@ -107,6 +107,7 @@ metadata:
   name: app
   namespace: test
 spec:
+  podSelector: {}
   ingressClassName: nginx
   rules:
   - host: app.test.local
