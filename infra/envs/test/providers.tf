@@ -13,6 +13,7 @@ terraform {
     storage_account_name = "tfstatekingsila"
     container_name       = "state"
     key                  = "test/terraform.tfstate"
+    use_azuread_auth     = true
   }
 }
 
