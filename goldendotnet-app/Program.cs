@@ -9,6 +9,9 @@ builder.Logging.AddFilter("Microsoft.ApplicationInsights", LogLevel.Trace);
 builder.Logging.AddFilter("Microsoft.ApplicationInsights.Channel", LogLevel.Trace);
 builder.Logging.AddFilter("Microsoft.ApplicationInsights.Extensibility", LogLevel.Trace);
 
+// ✅ Ensure your own app logs show up even if the host is filtering to Warning+
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
 // Pull connection string explicitly from env
 var aiConnectionString =
     Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING");
@@ -41,7 +44,10 @@ app.Logger.LogWarning(
     telemetryClient.TelemetryConfiguration.InstrumentationKey
 );
 
-// ✅ Optional: emit a startup trace + event to prove ingestion ASAP
+// ✅ Force something visible in BOTH: container logs + App Insights
+app.Logger.LogWarning("Startup: golden-app booted (warning-level)");
+
+// ✅ Emit a startup trace + event to prove ingestion ASAP
 telemetryClient.TrackTrace("startup: golden-app booted");
 telemetryClient.TrackEvent("startup: golden-app");
 telemetryClient.Flush();
@@ -49,7 +55,7 @@ telemetryClient.Flush();
 // Basic endpoint
 app.MapGet("/", (ILogger<Program> logger) =>
 {
-    logger.LogInformation("Root endpoint hit");
+    logger.LogWarning("Root endpoint hit (warning-level)");
     return "Hello from golden-app with Application Insights 🚀";
 });
 
@@ -70,7 +76,7 @@ app.MapGet("/ai", () =>
 // Force-send telemetry endpoint
 app.MapGet("/telemetry", async (ILogger<Program> logger) =>
 {
-    logger.LogInformation("Telemetry endpoint hit");
+    logger.LogWarning("Telemetry endpoint hit (warning-level)");
 
     telemetryClient.TrackTrace("trace: hello from golden-app");
     telemetryClient.TrackEvent("event: golden-app-test");
