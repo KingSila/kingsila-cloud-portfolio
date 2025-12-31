@@ -71,21 +71,62 @@ Includes:
 This project demonstrates cloud engineering at scale, built for real production patterns.
 
 ---
-## 🏁 Current Status
-### **Week 3–4: CI/CD, Environments & Stability** ✔️ Completed
 
-Progress so far:
+# 📊 Overall Progress
 
-- ✔️ Stable multi-environment setup (dev, test, prod)
-- ✔️ Remote backend using environment-bound state keys
-- ✔️ Terraform modules (VNet, App Service, Key Vault, Policies)
-- ✔️ GitHub Actions: plan on PR, apply on merge
-- ✔️ Destroy workflow with confirmation gate
-- ✔️ Environment approvals + branch protection rules
+**Current Progress: ~87–88%**
 
-⚡ **Next:** Enable Defender for Cloud baseline & expand Policy-as-Code
+### Breakdown
+- **Weeks 1–4:** 100% — Foundations complete
+- **Weeks 5–6:** 100% — CI/CD & environment stability
+- **Weeks 7–8:** 100% — AKS, Helm & runtime validation
+- **Weeks 9–12:** Planned — hardening, SRE & production narrative
 
 ---
+
+# 📌 Snapshot Summary
+
+## ✔ Completed to Date
+
+- End-to-end Terraform CI/CD with GitHub Actions (OIDC-based auth)
+- Multi-environment Azure architecture (dev / test / prod)
+- Remote state isolation and backend governance
+- Azure identity patterns with Managed Identity + Key Vault
+- Policy-as-Code and baseline security guardrails
+- Governance controls aligned with production practices
+- **Private AKS platform fully deployed and validated**
+- **Ingress and NetworkPolicy resolved under real-world constraints**
+- **Helm Golden Chart implemented for standardised application delivery**
+- **Runtime standards documented and enforced across environments**
+
+This phase validates not just deployment success, but **operational correctness**.
+
+---
+
+## 🚀 In Progress
+
+- Observability design (logs, metrics, traces)
+- Application Insights and Azure Monitor integration patterns
+- SRE principles applied to the platform (signals, ownership, runbooks)
+
+---
+
+## 🔜 Coming Next
+
+- TLS enablement and certificate lifecycle management (cert-manager)
+- Alerting strategy and signal-to-noise tuning
+- SRE documentation (SLIs, SLOs, error budgets)
+- Production-readiness narrative and platform case study
+
+---
+
+## 🧠 Status Summary
+
+The platform has moved beyond “infrastructure works”
+into **“infrastructure behaves correctly under constraints.”**
+
+Remaining work focuses on **resilience, visibility, and operational maturity** rather than core build-out.
+
 
 ## 🚀 Quick Start
 
