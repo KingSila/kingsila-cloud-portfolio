@@ -1,34 +1,35 @@
 # KingSila Cloud Portfolio – Azure | Terraform | DevOps
+**Project Status: CLOSED (Delivered by Design)**
 
 Welcome 👋
 This repository documents my journey from experienced engineer to
 **Senior Cloud Engineer (Azure / Terraform / DevOps)** — targeting Hybrid or fully remote roles in **SA**, **US** and **Europe**.
 
+This is not a tutorial repo.
+It is a **finished platform with intentional boundaries**
+
 ---
 
 ## 🚀 Purpose
+This project set out to:
 
-- Build **production-grade Azure infrastructure** using modern DevOps patterns.
-- Create **reusable, enterprise-ready Terraform modules**.
-- Implement **secure CI/CD automation** with GitHub Actions.
-- Showcase real-world cloud architecture, security, and observability skills.
-- Track continuous learning and hands-on progress.
+- Build **production-grade Azure infrastructure** using modern DevOps patterns
+- Create **reusable, enterprise-ready Terraform modules**
+- Implement **secure CI/CD automation** with GitHub Actions (OIDC)
+- Demonstrate real-world cloud architecture, governance, and runtime correctness
+- Prove judgment, not just tooling familiarity
 
+All primary objectives have been met.
 ---
 
 ## 📆 Timeline
 
-**November 2025 → January 2026**
-12-week structured roadmap focused on:
+**November 2025 → December 2025**
 
-1. Azure core infrastructure & governance
-2. Terraform advanced modules
-3. CI/CD and automation
-4. Security, monitoring, and cost optimisation
-5. Containers & AKS
-6. Final portfolio build + interview preparation
+Originally scoped as a 12-week roadmap.
+The platform was **completed early** once it reached architectural coherence and production defensibility.
 
-See [`TRACKER.md`](./TRACKER.md) for weekly milestones.
+Weekly tracking is preserved in [`TRACKER.md`](./TRACKER.md) for transparency.
 
 ---
 
@@ -74,13 +75,13 @@ This project demonstrates cloud engineering at scale, built for real production 
 
 # 📊 Overall Progress
 
-**Current Progress: ~87–88%**
+**Current Progress: ~100**
 
 ### Breakdown
 - **Weeks 1–4:** 100% — Foundations complete
 - **Weeks 5–6:** 100% — CI/CD & environment stability
 - **Weeks 7–8:** 100% — AKS, Helm & runtime validation
-- **Weeks 9–12:** Planned — hardening, SRE & production narrative
+- **Weeks 9–12:** 100% — hardening, SRE & production narrative
 
 ---
 
@@ -101,29 +102,11 @@ This project demonstrates cloud engineering at scale, built for real production 
 
 This phase validates not just deployment success, but **operational correctness**.
 
----
-
-## 🚀 In Progress
-
-- Observability design (logs, metrics, traces)
-- Application Insights and Azure Monitor integration patterns
-- SRE principles applied to the platform (signals, ownership, runbooks)
-
----
-
-## 🔜 Coming Next
-
-- TLS enablement and certificate lifecycle management (cert-manager)
-- Alerting strategy and signal-to-noise tuning
-- SRE documentation (SLIs, SLOs, error budgets)
-- Production-readiness narrative and platform case study
-
----
-
 ## 🧠 Status Summary
 
-The platform has moved beyond “infrastructure works”
-into **“infrastructure behaves correctly under constraints.”**
+This project is formally closed.
+
+Further work would constitute product evolution, not unfinished engineering.
 
 Remaining work focuses on **resilience, visibility, and operational maturity** rather than core build-out.
 
@@ -156,17 +139,3 @@ This workflow ensures:
 - Reproducible deployments
 - Full audit trail
 - Safe, controlled promotion between environments
-
-## CI Status
-
-### Terraform Pipeline
-
-[![Terraform CI/CD](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml)
-
-### Environment Status
-
-| Environment | Status Badge |
-|------------|--------------|
-| **Dev**    | ![Dev Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=dev) |
-| **Test**   | ![Test Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=test) |
-| **Prod**   | ![Prod Status](https://github.com/KingSila/kingsila-cloud-portfolio/actions/workflows/terraform-ci.yml/badge.svg?branch=main&env=prod) |

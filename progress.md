@@ -1,162 +1,176 @@
-# 🚀 12-Week Platform Engineering Tracker (Updated 2025-12-29)
+# 🚀 Platform Engineering Project — **Final Close-Out**
 **Azure · Terraform · GitHub Actions · AKS · SRE**
+
+**Project State: CLOSED (Delivered by Design)**
+**Close-out Date:** 2025-12-29
 
 ---
 
 ## ✅ Weeks 1–2: Platform CI/CD & IaC Foundations
-**Status: 100% Complete**
+**Status: COMPLETE**
 
-Achievements:
+Delivered:
 - Standardised GitHub Actions workflow for Terraform
-- Implemented OIDC authentication with Azure
+- OIDC authentication with Azure
 - Reusable CI pipeline templates
 - Artifact upload & naming fixes
-- GitHub Environments for dev/test/prod/destroy
+- GitHub Environments (dev/test/prod/destroy)
 - Branch protection on `main`
 - Pre-commit hooks (fmt, validate, tflint, md-lint)
 - Environment lifecycle tooling + VS Code tasks
 - CI/CD documentation (`/docs/cicd.md`)
 - Drift detection scaffolding
-- End-to-end stable plan/apply workflow
+- End-to-end plan/apply stability
 - Secret flow: GitHub → Terraform → Key Vault
-- App Service + Insights + telemetry validation
+- App Service + Application Insights validation
 
 ---
 
 ## ✅ Weeks 3–4: IaC Governance & Multi-Environment Foundations
-**Status: 100% Complete**
+**Status: COMPLETE**
 
-Achievements:
-- Stable backend keys for all environments
-- Fixed `for_each` structure issues
-- Remote state for dev/test/prod
-- Reusable modules (networking, keyvault, policy)
-- Destroy protections + approvals
-- Tagging & cost governance groundwork
+Delivered:
+- Stable remote backend keys (dev/test/prod)
+- Corrected `for_each` and state isolation issues
+- Reusable Terraform modules (networking, Key Vault, policy)
+- Destroy protections and approval gates
+- Tagging and cost-governance groundwork
 - Management groups + RBAC scaffolding
-- Drift issues resolved
+- Drift remediation completed
 - Finalised environment lifecycle model
 - Central Key Vault pattern implemented
-- RBAC for CI (management + data plane)
-- App Service Key Vault references completed
+- CI RBAC (management + data plane)
+- App Service Key Vault references validated
 
 ---
 
 ## 🛡️ Weeks 5–6: Security, Compliance & Guardrails
-**Status: 100% Complete**
+**Status: COMPLETE**
 
-Completed:
-- Azure Policy-as-Code (allowed locations, SKU restrictions)
-- Reusable policy-assignment module
+Delivered:
+- Azure Policy-as-Code (locations, SKUs, public exposure)
+- Reusable policy assignment module
 - Defender for Cloud baseline enabled
-- Workload identity pattern across environments
-- tfsec scanning (non-blocking + blocking modes)
-- Checkov scanning with SARIF export
-- Tag enforcement (owner/environment)
-- Secret provisioning stabilised (dev/test/prod)
-- App Service + KV + telemetry integration validated
+- Workload Identity across environments
+- tfsec (blocking + non-blocking)
+- Checkov with SARIF export
+- Tag enforcement (owner, environment)
+- Stable secret provisioning (dev/test/prod)
+- App Service + Key Vault + telemetry integration
 - Destroy pipeline with env-specific backend config
-- Hardened Key Vault `network_acls` (tfsec CRITICAL resolved)
-- “Deny public endpoints” policies added
+- Hardened Key Vault network ACLs
+- Public endpoint denial policies
 - Security architecture documentation (`/docs/security.md`)
 - Defender residual state validated
 
 ---
 
 ## ☸️ Weeks 7–8: AKS Platform Layer
-**Status: 100% Complete** ✅
+**Status: COMPLETE — PLATFORM PRODUCTISED** ✅
 
-### Completed (Platform Layer Fully Productised)
-- AKS module outputs (cluster name, node RG, OIDC issuer URL)
-- Dev **and Test** Kubernetes manifests created and validated:
+Delivered:
+- AKS module outputs (cluster name, node RG, OIDC issuer)
+- Dev and Test Kubernetes resources validated:
   - Namespace
   - ServiceAccount
   - Deployment (hardened security context)
-- Dev and Test AKS cluster lifecycle exercised (create / destroy / recover)
-- Workload Identity wired and validated in-cluster
-- Private AKS access solved via `az aks command invoke`
-- NGINX ingress controller deployed and configured
-- Ingress routing validated end-to-end (HTTP 200 confirmed)
-- Default-deny NetworkPolicy baseline implemented
-- Fine-grained allow NetworkPolicies:
+- AKS lifecycle exercised (create / destroy / recover)
+- Workload Identity validated in-cluster
+- Private AKS access solved (`az aks command invoke`)
+- NGINX ingress controller deployed
+- Ingress routing validated end-to-end (HTTP 200)
+- Default-deny NetworkPolicy baseline
+- Fine-grained NetworkPolicies:
   - DNS egress
-  - ingress-nginx → app
+  - ingress-nginx → workload
   - namespace-local traffic
-- GitHub Actions AKS deployment pipeline stabilised (dev/test)
-- Service and ingress smoke tests added to CI
-- CI validates **runtime behaviour**, not just manifests
-- **Helm base “golden chart” implemented**
-- **Helm standardisation completed across environments**
-- **Runtime standards documentation completed (`/docs/platform-runtime.md`)**
+- GitHub Actions AKS deployment pipeline stabilised
+- CI validates **runtime behaviour**, not only manifests
+- **Helm “golden chart” implemented**
+- **Helm standardisation completed**
+- **Runtime standards documented (`/docs/platform-runtime.md`)**
 
 ---
 
-## 🔭 Weeks 9–10: Observability, SRE & Reliability
-**Status: Planned (~10%)**
+## 🔭 Weeks 9–10: Observability & SRE
+**Status: DEFERRED — OUT OF SCOPE**
 
-Planned:
-- AKS metrics, logs, and traces
-- Container Insights + Application Insights alignment
+Deferred intentionally:
+- AKS metrics, logs, traces
+- Container Insights & Application Insights deep alignment
 - Grafana dashboards
 - HPA configuration
 - Readiness / liveness probes
 - PodDisruptionBudgets
-- Alerting rules (cluster + workload)
-- SLO definitions
-- Reliability documentation (`/docs/sre.md`)
+- Alerting rules
+- SLO / SLI definitions
+- SRE documentation (`/docs/sre.md`)
+
+**Reason for Deferral:**
+These items extend the project into long-term **service ownership and operations**.
+The platform itself is already production-capable and defensible.
 
 ---
 
 ## 🎨 Weeks 11–12: Platform Packaging & Career Positioning
-**Status: Planned (~5%)**
+**Status: OPTIONAL / POST-PROJECT**
 
-Planned:
-- Architecture diagrams (Hub-Spoke + AKS + CI/CD)
+Deferred:
+- Architecture diagrams
 - Platform overview README
-- 10-minute internal-style presentation
-- Promotion / career narrative
-- CV and LinkedIn updates
-- Optional: article or recorded walkthrough
+- Presentation or walkthrough
+- CV / LinkedIn updates
+- Public article or demo
+
+**Reason for Deferral:**
+These are amplification activities, not platform engineering deliverables.
 
 ---
 
-# 📊 Overall Progress
+## 📊 Final Project Status
 
-**Current Progress: ~86–88%**
+**Platform Delivery: COMPLETE**
 
-### Breakdown
+### Final Breakdown
 - Weeks 1–4 → **100%**
 - Weeks 5–6 → **100%**
 - Weeks 7–8 → **100%**
-- Weeks 9–12 → **Planned**
+- Weeks 9–12 → **Explicitly Deferred**
 
 ---
 
-# 📌 Snapshot Summary
+## 📌 Final Snapshot
 
-### ✔ Completed to Date
-- End-to-end CI/CD for Terraform
-- Multi-environment IaC architecture
-- Azure identity + Key Vault patterns
-- Policy-as-Code and security scanning
-- Governance guardrails
-- **Private AKS platform fully validated**
-- **Ingress + NetworkPolicy solved under real constraints**
-- **Helm golden chart and standardised app delivery**
-- **Runtime standards documented and enforced**
+### ✔ What Was Delivered
+- End-to-end CI/CD for Terraform and AKS
+- Multi-environment Azure platform
+- Secure identity and secret management
+- Policy-as-Code governance
+- Hardened private AKS platform
+- Network isolation and ingress solved under real constraints
+- Helm golden chart and standardised delivery
+- Runtime standards enforced and documented
 
-### 🚀 In Progress
-- Observability design
-- SRE patterns
-
-### 🔜 Coming Next
-- TLS + cert-manager
-- Observability and alerting
-- SRE documentation
-- Production-readiness narrative
+### 🧠 What This Project Demonstrates
+- Senior-level platform engineering judgment
+- Strong scope control
+- Production realism
+- Clear separation between **platform delivery** and **operations ownership**
 
 ---
 
-**At this point, the platform is no longer a “learning exercise.”
-It is a coherent, repeatable, defensible engineering system.
-The remaining work is about signal, not survival.**
+## 🏁 Formal Close-Out Statement
+
+**This project is formally closed.**
+
+The platform is:
+- Coherent
+- Repeatable
+- Secure by default
+- Production-capable
+- Defensible in design decisions
+
+Further work would represent **product evolution**, not unfinished engineering.
+
+Stopping here is not abandonment.
+It is what shipping looks like.
