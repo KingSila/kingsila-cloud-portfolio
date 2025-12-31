@@ -1,7 +1,13 @@
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ✅ Make App Insights SDK "talk" in container logs (high signal)
+builder.Logging.AddFilter("Microsoft.ApplicationInsights", LogLevel.Trace);
+builder.Logging.AddFilter("Microsoft.ApplicationInsights.Channel", LogLevel.Trace);
+builder.Logging.AddFilter("Microsoft.ApplicationInsights.Extensibility", LogLevel.Trace);
 
 // Pull connection string explicitly from env
 var aiConnectionString =
@@ -34,6 +40,11 @@ app.Logger.LogWarning(
     "AppInsights configured. IKey={ikey}",
     telemetryClient.TelemetryConfiguration.InstrumentationKey
 );
+
+// ✅ Optional: emit a startup trace + event to prove ingestion ASAP
+telemetryClient.TrackTrace("startup: golden-app booted");
+telemetryClient.TrackEvent("startup: golden-app");
+telemetryClient.Flush();
 
 // Basic endpoint
 app.MapGet("/", (ILogger<Program> logger) =>
